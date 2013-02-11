@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import kokkodis.factory.PropertiesFactory;
+import kokkodis.holders.PropertiesFactory;
 
 public class AverageResults {
 
@@ -21,7 +21,7 @@ public class AverageResults {
 	private static PrintToFile resultsFile;
 
 	public static void main(String[] args) {
-
+averageAndPrint();
 	}
 
 	public static void averageAndPrint() {
@@ -45,8 +45,8 @@ public class AverageResults {
 		resultsFile = new PrintToFile();
 		resultsFile.openFile(resultPath + "cvAverageResults.csv");
 		resultsFile
-				.writeToFile("model,approach,ScoreThreshold,HistoryThreshold,MAE-model"
-						+ ",MAE-Baseline");
+				.writeToFile("model,approach,ScoreThreshold,HistoryThreshold,MAEmodel"
+						+ ",MAEBaseline");
 
 		System.out
 				.println("---------------------------------------------------------");
@@ -101,14 +101,26 @@ public class AverageResults {
 				 * model,approach,ScoreThreshold,HistoryThreshold,
 				 * MAE-model,MAE-Baseline,MSE-model,MSE-Baseline
 				 */
+				HashMap<String,Integer> header = Utils.getHeader(line);
+				int modelInd = header.get("model");
+				int approachInd = header.get("approach");
+				int thresholdInd = header.get("ScoreThreshold");
+				int historyInd = header.get("HistoryThreshold");
+				int maeModelInd =  header.get("MAEModel");
+				int maeBaselineInd =  header.get("MAEBaseline");
+				int mseModelInd =  header.get("MSEModel");
+				int mseBaselineInd =  header.get("MSEBaseline");
+				
 				while ((line = input.readLine()) != null) {
 
 					String[] tmpAr = line.split(",");
 
-					String key = tmpAr[0] + "_" + tmpAr[1] + "_" + tmpAr[2];
-					int history = Integer.parseInt(tmpAr[3].trim());
-					double maeModel = Double.parseDouble(tmpAr[4].trim());
-					double maeBaseline = Double.parseDouble(tmpAr[5].trim());
+					String key = tmpAr[modelInd] + "_" + 
+					tmpAr[approachInd] + "_" + 
+							tmpAr[thresholdInd];
+					int history = Integer.parseInt(tmpAr[historyInd].trim());
+					double maeModel = Double.parseDouble(tmpAr[maeModelInd].trim());
+					double maeBaseline = Double.parseDouble(tmpAr[maeBaselineInd].trim());
 
 					TreeMap<Integer, HashMap<String, ArrayList<Double>>> curScoreMap = data
 							.get(key);

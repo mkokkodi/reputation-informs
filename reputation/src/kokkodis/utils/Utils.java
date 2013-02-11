@@ -1,19 +1,27 @@
 package kokkodis.utils;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 import net.sf.doodleproject.numerics4j.random.BetaRandomVariable;
 import net.sf.doodleproject.numerics4j.random.GammaRandomVariable;
+import net.sf.doodleproject.numerics4j.random.NormalRandomVariable;
 
-import kokkodis.factory.BinCategory;
-import kokkodis.factory.EvalWorker;
-import kokkodis.factory.ModelCategory;
-import kokkodis.factory.MultCategory;
-import kokkodis.factory.RawInstance;
+import kokkodis.holders.BinCategory;
+import kokkodis.holders.EvalWorker;
+import kokkodis.holders.KalmanParameterHolder;
+import kokkodis.holders.ModelCategory;
+import kokkodis.holders.MultCategory;
+import kokkodis.holders.PropertiesFactory;
+import kokkodis.holders.RawInstance;
+import kokkodis.kalman.KalmanFilter;
 
 public class Utils {
 
@@ -157,8 +165,7 @@ public class Utils {
 
 	public static String createFileName() {
 		String res = GlobalVariables.curModel
-				+ "_"
-				+ GlobalVariables.curApproach
+				+ ("_"+GlobalVariables.curApproach)
 				+ (GlobalVariables.curCluster != null ? "_"
 						+ GlobalVariables.curCluster : "")
 				+ (GlobalVariables.curModel.equals("Binomial") ? "_"
@@ -244,6 +251,8 @@ public class Utils {
 				((BinCategory) mc).setX(((BinCategory) mc).getX() + 1);
 			}
 			((BinCategory) mc).setN(((BinCategory) mc).getN() + 1);
+		}else if(GlobalVariables.curModel.equals("Kalman")){
+			((KalmanFilter)mc).update(score);
 		} else {
 			((MultCategory) mc).getBucketSuccesses()[Utils.getBucket(score)]++;
 			((MultCategory) mc).increaseTotalTrials();
@@ -289,16 +298,69 @@ public class Utils {
 	}
 
 	public static HashMap<String, Integer> getHeader(String line) {
-		HashMap<String,Integer> hm = new HashMap<String, Integer>();
+		HashMap<String, Integer> hm = new HashMap<String, Integer>();
 		String[] tmpAr = line.split(",");
 		for (int i = 0; i < tmpAr.length; i++) {
-			hm.put(tmpAr[i],i);
+			hm.put(tmpAr[i], i);
 		}
 		return hm;
 	}
+
 	public static String getStringFromDouble(double score) {
 		DecimalFormat myFormatter = new DecimalFormat("#.####");
 		return myFormatter.format(score);
+	}
+
+	public static double getNormalEstimate(double mean, double var) {
+		double newVal = new NormalRandomVariable(mean, var)
+				.nextRandomVariable();
+		//if (newVal > 1)
+			//return 1;
+			//newVal = new NormalRandomVariable(mean, var).nextRandomVariable();
+		return newVal;
+	}
+	public static HashMap<Integer, KalmanParameterHolder> readThetas() {
+		String inputDir = PropertiesFactory.getInstance().getProps()
+				.getProperty("rawPath");
+		HashMap<Integer, KalmanParameterHolder> hm = new HashMap<Integer, KalmanParameterHolder>();
+		try {
+			//String infile = (GlobalVariables.syntheticCluster)?
+			BufferedReader input = new BufferedReader(new FileReader(inputDir
+					+ (GlobalVariables.syntheticCluster?"":"real_")+"kalmanPriors.csv"));
+			String line;
+			line = input.readLine();
+
+			/**
+			 * category,mu_0,p_0,a,g,c,r
+			 */
+			while ((line = input.readLine()) != null) {
+				String[] tmpAr = line.split(",");
+				KalmanParameterHolder h = new KalmanParameterHolder();
+				h.setMu_0(Float.parseFloat(tmpAr[1]));
+				h.setP_0(Float.parseFloat(tmpAr[2]));
+				h.setA(Float.parseFloat(tmpAr[3]));
+				h.setG(Float.parseFloat(tmpAr[4]));
+				h.setC(Float.parseFloat(tmpAr[5]));
+				h.setR(Float.parseFloat(tmpAr[6]));
+				hm.put(Integer.parseInt(tmpAr[0]), h);
+				System.out.println(h.toString());
+			}
+			input.close();
+		} catch (IOException e) {
+		}
+
+		return hm;
+	}
+
+
+	public static float getListAverage(List<Float> f_n) {
+		
+		float sum = 0;
+		for(float f:f_n){
+			sum+=f;
+		}
+		return sum/(float)f_n.size();
+
 	}
 
 

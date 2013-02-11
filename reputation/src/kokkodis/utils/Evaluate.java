@@ -7,13 +7,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import kokkodis.factory.BinCategory;
-import kokkodis.factory.ErrorHolder;
-import kokkodis.factory.EvalWorker;
-import kokkodis.factory.ModelCategory;
-import kokkodis.factory.MultCategory;
-import kokkodis.factory.PropertiesFactory;
-import kokkodis.factory.RawInstance;
+import kokkodis.holders.BinCategory;
+import kokkodis.holders.ErrorHolder;
+import kokkodis.holders.EvalWorker;
+import kokkodis.holders.KalmanParameterHolder;
+import kokkodis.holders.ModelCategory;
+import kokkodis.holders.MultCategory;
+import kokkodis.holders.PropertiesFactory;
+import kokkodis.holders.RawInstance;
+import kokkodis.kalman.KalmanFilter;
 
 public class Evaluate {
 
@@ -23,13 +25,18 @@ public class Evaluate {
 	private static ArrayList<Integer> curCatIds;
 	private static String basedon;
 	private static HashMap<String, HashMap<String, Double>> lambdas;
+	private static HashMap<Integer, KalmanParameterHolder> thetaPerCategory;
 
 	public static void evaluate() {
 
 		globalVariables = GlobalVariables.getInstance();
-		if (!GlobalVariables.evaluateOnTrain)
-			readLambdas();
 
+		if (GlobalVariables.curModel.equals("Kalman"))
+			thetaPerCategory = Utils.readThetas();
+
+		/*
+		 * if (!GlobalVariables.evaluateOnTrain) readLambdas();
+		 */
 		if (GlobalVariables.printFiles)
 			printCoefficients();
 
@@ -37,14 +44,13 @@ public class Evaluate {
 
 		System.out
 				.println("model | approach |  ScoreThreshold | HistoryThreshold | MAE-model"
-						+ " | MAE-Baseline" + " | MAE-EM"
-				// + " | MSE-model"
-				// + " | MSE-Baseline"
-				);
+						+ " | MAE-Baseline"
+						// + " | MAE-EM"
+						+ " | MSE-model" + " | MSE-Baseline");
 
 		int limit = (GlobalVariables.evaluateOnTrain ? 3 : 15);
-		int initial=(GlobalVariables.evaluateOnTrain ? 3 : 3);
-		for (historyThreshold =initial ; historyThreshold <= limit; historyThreshold += 2) {
+		int initial = (GlobalVariables.evaluateOnTrain ? 3 : 3);
+		for (historyThreshold = initial; historyThreshold <= limit; historyThreshold += 2) {
 
 			errorHolder = new ErrorHolder();
 
@@ -52,68 +58,86 @@ public class Evaluate {
 
 			double maeBaseline = errorHolder.getBaselineMAESum()
 					/ errorHolder.getTotalEvaluations();
-			double maeHierarchicalModel = errorHolder.getBinomialModelMAESum()
+			double maeBasicModel = errorHolder.getBasicModelMAESum()
 					/ errorHolder.getTotalEvaluations();
 
-			/*
-			 * double mseBinomialModel = errorHolder.getBinomialModelMSESum() /
-			 * errorHolder.getTotalEvaluations();
-			 * 
-			 * double mseBaseline = errorHolder.getBaselineMSESum() /
-			 * errorHolder.getTotalEvaluations();
-			 */
-			double maeEMModel = errorHolder.getEMModelMAESum()
+			double mseBasicModel = errorHolder.getBinomialModelMSESum()
 					/ errorHolder.getTotalEvaluations();
-			
-			double maClusteredMModel = errorHolder.getClusteredModelMAESum()
+
+			double mseBaseline = errorHolder.getBaselineMSESum()
 					/ errorHolder.getTotalEvaluations();
-			
-			
+
+			// double maeEMModel = errorHolder.getEMModelMAESum()
+			// / errorHolder.getTotalEvaluations();
+
+			// double maClusteredMModel = errorHolder.getClusteredModelMAESum()
+			// / errorHolder.getTotalEvaluations();
 
 			String resStr = (GlobalVariables.curModel.equals("Binomial") ? GlobalVariables.currentBinomialThreshold
-					: " ")
+					: "NA")
 					+ " | " + historyThreshold + " | ";
 
 			// mseBinomialModel + " | "
 			// + mseBaseline;
 			if (GlobalVariables.printFiles) {
+				if (!GlobalVariables.baselinePrinted) {
+					GlobalVariables.allResultsFile
+							.writeToFile(((GlobalVariables.synthetic) ? ("Baseline,")
+									: "")
+									+ "Baseline"
+									+ ","
+									+ "Baseline,"
+									// +( (GlobalVariables.curModel
+									// .equals("Multinomial") &&
+									// !GlobalVariables.synthetic) ? "Baseline,"
+									// :
+									+ (GlobalVariables.curApproach + ",")
+									// )
+									+ resStr.replaceAll(" \\| ", ",")
+									+ maeBaseline
+									+ ","
+									+ maeBaseline
+									+ ","
+									+ mseBaseline + "," + mseBaseline);
+				
+					
+				}
 
-				GlobalVariables.allResultsFile
-						.writeToFile(((GlobalVariables.synthetic) ? ("Baseline,")
-								: "")
-								+ GlobalVariables.curModel
-								+ ","
-								+ "Baseline,"
-								+ ((GlobalVariables.syntheticCluster || (GlobalVariables.curModel
-										.equals("Multinomial") && !GlobalVariables.synthetic)) ? "Baseline,"
-										: (GlobalVariables.curApproach + ","))
-								+ resStr.replaceAll(" \\| ", ",")
-								+ maeBaseline
-								+ "," + maeBaseline);
+				/*
+				 * GlobalVariables.allResultsFile
+				 * .writeToFile(((GlobalVariables.synthetic) ? (GlobalVariables
+				 * .getInstance().getClusterCategories().get("r").length - 1 +
+				 * ",") : "") + GlobalVariables.curModel + ",Shrinkage," +
+				 * resStr.replaceAll(" \\| ", ",") + maeEMModel + "," +
+				 * maeBaseline+","+mseBasicModel+","+mseBaseline);
+				 */
 				resStr = GlobalVariables.curApproach + " | " + resStr;
-
 				GlobalVariables.allResultsFile
 						.writeToFile(((GlobalVariables.synthetic) ? (GlobalVariables
 								.getInstance().getClusterCategories().get("r").length - 1 + ",")
 								: "")
 								+ GlobalVariables.curModel
-								+ ",Shrinkage,"
+								+ ",Basic Model,"
 								+ resStr.replaceAll(" \\| ", ",")
-								+ maeEMModel
-								+ "," + maeBaseline);
-
-				GlobalVariables.allResultsFile
-						.writeToFile(((GlobalVariables.synthetic) ? (GlobalVariables
-								.getInstance().getClusterCategories().get("r").length - 1 + ",")
-								: "")
-								+ GlobalVariables.curModel
-								+ ",No Hierarchies,"
-								+ resStr.replaceAll(" \\| ", ",")
-								+ maeHierarchicalModel + "," + maeBaseline);
+								+ maeBasicModel
+								+ ","
+								+ maeBaseline
+								+ ","
+								+ mseBasicModel + "," + mseBaseline);
+				/*
+				 * GlobalVariables.allResultsFile
+				 * .writeToFile(((GlobalVariables.synthetic) ? (GlobalVariables
+				 * .getInstance().getClusterCategories().get("r").length - 1 +
+				 * ",") : "") + GlobalVariables.curModel + ",Clusters," +
+				 * resStr.replaceAll(" \\| ", ",") + maClusteredMModel + "," +
+				 * maeBaseline);
+				 */
 
 			}
-			resStr += maeHierarchicalModel + " | " + maeBaseline + "|"
-					+ maeEMModel+" | "+maClusteredMModel;
+			
+			resStr += maeBasicModel + " | " + maeBaseline + "|" + mseBasicModel
+					+ " | " + mseBaseline;
+			// + maeEMModel + " | " + maClusteredMModel;
 
 			System.out.println(GlobalVariables.curModel + " | " + resStr);
 
@@ -300,16 +324,30 @@ public class Evaluate {
 				.getN();
 		if (numberPastTasks > historyThreshold) {
 
-			if (GlobalVariables.curApproach.equals("RS")) {
-				for (int j = 0; j < GlobalVariables.rsTrials; j++) {
-					updateErrors(evalWorker, ri, currentTaskCluster);
-
+			if (GlobalVariables.evaluateOnTransitions) {
+				if (ri.getCategory() != evalWorker.getPreviousCategory()) {
+					runUpdateErrors(evalWorker, ri, currentTaskCluster);
 				}
 			} else
-				updateErrors(evalWorker, ri, currentTaskCluster);
+				runUpdateErrors(evalWorker, ri, currentTaskCluster);
+
 		}
 
 		updateEvalWorker(evalWorker, ri, currentTaskCluster);
+
+	}
+
+	private static void runUpdateErrors(EvalWorker evalWorker, RawInstance ri,
+			String currentTaskCluster) {
+
+		if (GlobalVariables.curApproach.equals("PE")) {
+			updateErrors(evalWorker, ri, currentTaskCluster);
+		} else {
+			for (int j = 0; j < GlobalVariables.rsTrials; j++) {
+				updateErrors(evalWorker, ri, currentTaskCluster);
+
+			}
+		}
 
 	}
 
@@ -401,14 +439,18 @@ public class Evaluate {
 			Utils.addTaskOutcomeToCategory(specializedCurTaskCat, ri.getScore());
 
 		}
+		evalWorker.setPreviousCategory(ri.getCategory());
+		evalWorker.getGenericHistoryMap().get(0)
+				.updateFeedbackList((float) ri.getScore());
 	}
 
 	private static ModelCategory initBucketAndAddToMap(ModelCategory mc,
 			HashMap<Integer, ModelCategory> hashMap, int category) {
 		if (GlobalVariables.curModel.equals("Binomial"))
 			mc = new BinCategory();
-		else
-
+		else if (GlobalVariables.curModel.equals("Kalman")) {
+			mc = new KalmanFilter(thetaPerCategory.get(category));
+		} else
 			mc = new MultCategory();
 		hashMap.put(category, mc);
 		return mc;
@@ -421,65 +463,64 @@ public class Evaluate {
 		errorHolder.setTotalEvaluations(errorHolder.getTotalEvaluations() + 1);
 
 		double modelAbsoluteError = 0;
-		double clusterSpecificAbsoluteError = 0;
+		// double clusterSpecificAbsoluteError = 0;
 
 		double baselineAbsoluteError = 0;
-		double emAbsoluteError = 0;
+		// double emAbsoluteError = 0;
 
 		double baselineEstimatedQuality = 0;
 		double modelQuality = 0;
 		double rlQuality = -1;
 		double rrQuality = -1;
-		double clusterQuality=-1;
+		double clusterQuality = -1;
 
 		double emquality = 0;
 
 		modelQuality = predictModelQuality(evalWorker, ri, "r");
 
-		if (GlobalVariables.hierarchicalFlag) {
-			if (currentTaskCluster.equals("rr")) {
-				rrQuality = predictModelQuality(evalWorker, ri,
-						currentTaskCluster);
-				clusterSpecificAbsoluteError = Math.abs(rrQuality
-						- ri.getScore());
-				clusterQuality=rrQuality;
-			} else {
-				rlQuality = predictModelQuality(evalWorker, ri,
-						currentTaskCluster);
-				clusterSpecificAbsoluteError = Math.abs(rlQuality
-						- ri.getScore());
-				clusterQuality = rlQuality;
-
-			}
-			errorHolder.setClusteredModelMAESum(errorHolder
-					.getClusteredModelMAESum() + clusterSpecificAbsoluteError);
-		}
-
+		/*
+		 * if (GlobalVariables.hierarchicalFlag) { if
+		 * (currentTaskCluster.equals("rr")) { rrQuality =
+		 * predictModelQuality(evalWorker, ri, currentTaskCluster);
+		 * clusterSpecificAbsoluteError = Math.abs(rrQuality - ri.getScore());
+		 * clusterQuality = rrQuality; } else { rlQuality =
+		 * predictModelQuality(evalWorker, ri, currentTaskCluster);
+		 * clusterSpecificAbsoluteError = Math.abs(rlQuality - ri.getScore());
+		 * clusterQuality = rlQuality;
+		 * 
+		 * } errorHolder.setClusteredModelMAESum(errorHolder
+		 * .getClusteredModelMAESum() + clusterSpecificAbsoluteError); }
+		 */
 		modelAbsoluteError = (Math.abs(modelQuality - ri.getScore()));
+		baselineEstimatedQuality = estimateAvg(evalWorker);
 
-		if (GlobalVariables.curModel.equals("Binomial")) {
-			baselineEstimatedQuality = estimateBinomialBaselineQuality(evalWorker);
-		} else {
-			baselineEstimatedQuality = estimateMultinomialBaselineQuality(evalWorker);
+		/*
+		 * if (GlobalVariables.curModel.equals("Binomial")) {
+		 * baselineEstimatedQuality =
+		 * estimateBinomialBaselineQuality(evalWorker); } else
+		 * if(GlobalVariables.curModel.equals("Kalman")){
+		 * baselineEstimatedQuality = estimateAvg(evalWorker); }else{
+		 * baselineEstimatedQuality =
+		 * estimateMultinomialBaselineQuality(evalWorker);
+		 * 
+		 * }
+		 */
 
-		}
-
-		try {
-			emquality = estimateEMQuality(baselineEstimatedQuality,
-					modelQuality, (rlQuality != -1) ? rlQuality : rrQuality,
-					currentTaskCluster);
-
-			emAbsoluteError = Math.abs(emquality - ri.getScore());
-			errorHolder.setEMModelMAESum(errorHolder.getEMModelMAESum()
-					+ emAbsoluteError);
-		} catch (NullPointerException ne) {
-
-		}
-
+		/*
+		 * try { emquality = estimateEMQuality(baselineEstimatedQuality,
+		 * modelQuality, (rlQuality != -1) ? rlQuality : rrQuality,
+		 * currentTaskCluster);
+		 * 
+		 * emAbsoluteError = Math.abs(emquality - ri.getScore());
+		 * errorHolder.setEMModelMAESum(errorHolder.getEMModelMAESum() +
+		 * emAbsoluteError); } catch (NullPointerException ne) {
+		 * 
+		 * }
+		 */
 		baselineAbsoluteError = (Math.abs(baselineEstimatedQuality
 				- ri.getScore()));
 
-		errorHolder.setBinomialModelMAESum(errorHolder.getBinomialModelMAESum()
+		errorHolder.setBasicModelMAESum(errorHolder.getBasicModelMAESum()
 				+ modelAbsoluteError);
 
 		errorHolder.setBinomialModelMSESum(errorHolder.getBinomialModelMSESum()
@@ -490,31 +531,52 @@ public class Evaluate {
 
 		errorHolder.setBaselineMSESum(errorHolder.getBaselineMSESum()
 				+ Math.pow(baselineAbsoluteError, 2));
-		if (GlobalVariables.printFiles && GlobalVariables.outputPredictions){
-			if(GlobalVariables.evaluateOnTrain) {
-		
-			GlobalVariables.predictions
-					.writeToFile(GlobalVariables.curModel
-							+ ","
-							+ GlobalVariables.curApproach
-							+ ","
-							 + historyThreshold + ","
-							+ Utils.getStringFromDouble(ri.getScore()) + "," + Utils.getStringFromDouble(modelQuality) + ","
-							+ Utils.getStringFromDouble(baselineEstimatedQuality) + "," + Utils.getStringFromDouble(rlQuality) + ","
-							+ Utils.getStringFromDouble(rrQuality));
-		}else{
-			GlobalVariables.predictions
-			.writeToFile(GlobalVariables.curModel
-					+ ","
-					+ GlobalVariables.curApproach
-					+ ","
-					 + historyThreshold + ","
-					+ Utils.getStringFromDouble(ri.getScore()) + "," + Utils.getStringFromDouble(modelQuality) + ","
-					+ Utils.getStringFromDouble(baselineEstimatedQuality) + "," + Utils.getStringFromDouble(clusterQuality) + ","
-					+ Utils.getStringFromDouble(emquality));
-		}
+		if (GlobalVariables.printFiles && GlobalVariables.outputPredictions) {
+			if (GlobalVariables.evaluateOnTrain) {
+
+				GlobalVariables.predictions
+						.writeToFile(GlobalVariables.curModel
+								+ ","
+								+ GlobalVariables.curApproach
+								+ ","
+								+ historyThreshold
+								+ ","
+								+ Utils.getStringFromDouble(ri.getScore())
+								+ ","
+								+ Utils.getStringFromDouble(modelQuality)
+								+ ","
+								+ Utils.getStringFromDouble(baselineEstimatedQuality)
+								+ "," + Utils.getStringFromDouble(rlQuality)
+								+ "," + Utils.getStringFromDouble(rrQuality));
+			} else {
+				GlobalVariables.predictions.writeToFile(evalWorker
+						.getPreviousCategory()
+						+ "->"
+						+ ri.getCategory()
+						+ ","
+						+ GlobalVariables.curModel
+						+ ","
+						+ GlobalVariables.curApproach
+						+ ","
+						+ historyThreshold
+						+ ","
+						+ Utils.getStringFromDouble(ri.getScore())
+						+ ","
+						+ Utils.getStringFromDouble(modelQuality)
+						+ ","
+						+ Utils.getStringFromDouble(baselineEstimatedQuality)
+						+ ","
+						+ Utils.getStringFromDouble(clusterQuality)
+						+ ","
+						+ Utils.getStringFromDouble(emquality));
+			}
 		}
 
+	}
+
+	private static double estimateAvg(EvalWorker evalWorker) {
+
+		return evalWorker.getGenericHistoryMap().get(0).getAverage();
 	}
 
 	private static double estimateEMQuality(double average,
@@ -569,6 +631,8 @@ public class Evaluate {
 				modelQuality = binomialPointEstimate(coeffs, hm);
 			else
 				modelQuality = binomialDistroEstimate(coeffs, hm);
+		} else if (GlobalVariables.curModel.equals("Kalman")) {
+			modelQuality = kalmanEstimate(coeffs, hm);
 		} else {
 			if (GlobalVariables.curApproach.equals("PE"))
 
@@ -579,6 +643,24 @@ public class Evaluate {
 		}
 		return Utils.inverseLogit(modelQuality);
 
+	}
+
+	private static double kalmanEstimate(HashMap<Integer, Double> coeffs,
+			HashMap<Integer, ModelCategory> hm) {
+		double modelQuality = 0;
+		if (coeffs == null) {
+			System.out.println("Null coefficients!");
+		}
+		for (int i : curCatIds) {
+
+			KalmanFilter mc = (KalmanFilter) hm.get(i);
+			if (mc == null)
+				mc = new KalmanFilter(thetaPerCategory.get(i));
+
+			modelQuality += coeffs.get(i)
+					* Utils.getLogit(Utils.fix(mc.predict()));
+		}
+		return modelQuality;
 	}
 
 	private static HashMap<Integer, Double> getCurrentCoeffsAndSetBasedOn(
@@ -710,7 +792,17 @@ public class Evaluate {
 			genericCurTaskCat = new BinCategory();
 			specializedOveralCategory = new BinCategory();
 			genericOveralCategory = new BinCategory();
-		} else {
+		} else if (GlobalVariables.curModel.equals("Kalman")) {
+			specializedCurTaskCat = new KalmanFilter(thetaPerCategory.get(ri
+					.getCategory()));
+			genericCurTaskCat = new KalmanFilter(thetaPerCategory.get(ri
+					.getCategory()));
+			specializedOveralCategory = new KalmanFilter(
+					thetaPerCategory.get(0));
+			genericOveralCategory = new KalmanFilter(thetaPerCategory.get(0));
+		}
+
+		else {
 			specializedCurTaskCat = new MultCategory();
 			genericCurTaskCat = new MultCategory();
 			specializedOveralCategory = new MultCategory();

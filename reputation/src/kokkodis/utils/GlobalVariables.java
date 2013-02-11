@@ -3,7 +3,7 @@ package kokkodis.utils;
 import java.util.HashMap;
 import java.util.Properties;
 
-import kokkodis.factory.PropertiesFactory;
+import kokkodis.holders.PropertiesFactory;
 
 /*
  * Global Variables for Train, Regressions and Test
@@ -26,6 +26,7 @@ public class GlobalVariables {
 	public static boolean hierarchicalFlag = false;
 	public static boolean evaluateOnTrain=false;
 	public static boolean outputPredictions = false;
+	public static boolean baselinePrinted = false;
 	
 
 	/**
@@ -57,6 +58,8 @@ public class GlobalVariables {
 	public static boolean synthetic = false;
 
 	public static boolean syntheticCluster=false;
+
+	public static boolean evaluateOnTransitions=false;
 
 	private double outOfScore;
 	

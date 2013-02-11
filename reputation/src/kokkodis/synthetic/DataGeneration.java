@@ -1,7 +1,7 @@
 package kokkodis.synthetic;
 
 
-import kokkodis.factory.PropertiesFactory;
+import kokkodis.holders.PropertiesFactory;
 import kokkodis.utils.PrintToFile;
 import flanagan.math.PsRandom;
 

@@ -3,7 +3,7 @@ package kokkodis.synthetic;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import kokkodis.factory.PropertiesFactory;
+import kokkodis.holders.PropertiesFactory;
 import kokkodis.utils.PrintToFile;
 import flanagan.math.PsRandom;
 
@@ -102,20 +102,23 @@ public class DataGenerationHierarchy {
 			trainFile.writeToFile("###############");
 			trainFile.writeToFile("id,cat,quality");
 			testFile.writeToFile("id,cat,quality");
-			for (int i = 0; i < 15000; i++) {
+			for (int i = 0; i < 20000; i++) {
 				int initCat = getInitialCat(categoriesDistribution);
 			//	System.out.println(initCat);
 				double[] userQualities = getUserQualities(initCat, categories);
+				
 				double[] userQualitiesDeviations = getDeviations(categories);
+				
 				int curCat = initCat;
 				PsRandom psr = new PsRandom();
-				int numberOfReviews = 30 + (int) Math.floor(Math.random() * 25);
+				int numberOfReviews = 3+ (int)  Math.floor(Math.random() * 40);
+				
 				boolean test = (Math.random() > 0.8) ? true : false;
 				for (int l = 0; l < numberOfReviews; l++) {
 					double res = 2;
 					while (res > 1)
-						res = psr.nextGaussian(userQualities[initCat],
-								userQualitiesDeviations[initCat]);
+						res = psr.nextGaussian(userQualities[curCat],
+								userQualitiesDeviations[curCat]);
 
 					if (test)
 						testFile.writeToFile(i + "," + (curCat + 1)
@@ -186,10 +189,19 @@ public class DataGenerationHierarchy {
 
 	private static double[] getUserQualities(int initCat, int categories) {
 		double[] qualities = new double[categories];
-		qualities[initCat] = Math.random() / 2 + 0.5;
+		double initQ =  Math.random() / 2 + 0.5;
+		qualities[initCat] = initQ;
 		for (int i = 0; i < categories; i++) {
-			if (i != initCat)
-				qualities[i] = Math.random();
+			if (i != initCat){
+				double rand = Math.random();
+				if(rand>0.5)
+					qualities[i] = rand/2 + initQ/2;
+				else
+					qualities[i] =  initQ - rand;
+				//System.out.println("What the fuck java:"+qualities[i] +" rand:"+rand);
+					//	((rand>0.5)?   
+						//(qualities[initCat]+ rand/2) : (qualities[initCat]- rand/2));
+			}
 
 		}
 		return qualities;

@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import kokkodis.factory.PropertiesFactory;
+import kokkodis.holders.PropertiesFactory;
 
 public class EMComputeLambdas {
 
@@ -22,7 +22,7 @@ public class EMComputeLambdas {
 	private static double numberOfLevels;
 	private static HashMap<String, HashMap<String, Double>> alphas;
 	private static HashMap<String, Boolean> convergedModels;
-	private static final double convergenceCritirion = 0.01;
+	private static final double convergenceCritirion = 0.002;
 	private static boolean allConverged = false;
 	private static final int maxIterations = 500;
 	private static int categories = -1;
@@ -33,6 +33,7 @@ public class EMComputeLambdas {
 	private static boolean real = false;
 	private static HashMap<Double, Double> errorWeights;
 	private static HashMap<String, HashMap<String, Double>> keyToProbSuccessGivenM;
+	private static boolean evaluateOnTransitions =false;
 
 	public static void main(String[] args) {
 
@@ -61,6 +62,8 @@ public class EMComputeLambdas {
 			}
 			if (args[i].contains("-r")) {
 				real = true;
+			}if (args[i].contains("-o")) {
+				evaluateOnTransitions = true;
 			}
 		}
 		System.out.println("Categories:" + categories);
@@ -108,10 +111,10 @@ public class EMComputeLambdas {
 		errorWeights.put(0.03, 0.15);
 		errorWeights.put(0.04, 0.1);
 		errorWeights.put(0.05, 0.1);
-		errorWeights.put(0.06, 0.03);
-		errorWeights.put(0.07, 0.03);
-		errorWeights.put(0.08, 0.03);
-		errorWeights.put(0.09, 0.01);
+		errorWeights.put(0.06, 0.05);
+		errorWeights.put(0.07, 0.05);
+		errorWeights.put(0.08, 0.05);
+		errorWeights.put(0.09, 0.05);
 
 	}
 
@@ -361,7 +364,9 @@ public class EMComputeLambdas {
 					.getProperty("results");
 			String inputFile = inFile + "predictions"
 					+ (currentFold != null ? ("_cv" + currentFold) : "")
-					+ (threshold != null ? ("_" + threshold) : "_mult") + ".csv";
+					+ (threshold != null ? ("_" + threshold) : "_mult") + (real?"_real":"")+
+					(evaluateOnTransitions ? "_onTransitions"
+							: "")+".csv";
 			BufferedReader input = new BufferedReader(new FileReader(inputFile));
 
 			System.out.println("Reading from input File:" + inputFile);
@@ -369,8 +374,8 @@ public class EMComputeLambdas {
 			line = input.readLine();
 			HashMap<String, Integer> header = Utils.getHeader(line);
 			/**
-			 * Predictions file: model,approach,ScoreThreshold,HistoryThreshold,
-			 * actual,r,baseline,rl,rr,EMPrediction
+			 * Predictions file:model,approach,HistoryThreshold,
+			 * actual,Nohierarchies,baseline,rl,rr
 			 */
 			int modelInd = header.get("model");
 			int approachInd = header.get("approach");
@@ -451,7 +456,8 @@ public class EMComputeLambdas {
 			curSuccessMap.put(0.06, true);
 			curSuccessMap.put(0.07, true);
 			curSuccessMap.put(0.08, true);
-			curSuccessMap.put(0.09, true);
+		/*	curSuccessMap.put(0.09, true);
+			*/
 		}
 		else if (diff <= 0.02){
 			curSuccessMap.put(0.02, true);
@@ -461,11 +467,18 @@ public class EMComputeLambdas {
 			curSuccessMap.put(0.06, true);
 			curSuccessMap.put(0.07, true);
 			curSuccessMap.put(0.08, true);
-			curSuccessMap.put(0.09, true);
+		/*	curSuccessMap.put(0.09, true);
+			*/
 		}
 		else if (diff <= 0.03){
 			curSuccessMap.put(0.03, true);
-			curSuccessMap.put(0.04, true);
+		curSuccessMap.put(0.04, true);
+						curSuccessMap.put(0.05, true);
+			curSuccessMap.put(0.06, true);
+			curSuccessMap.put(0.07, true);
+			curSuccessMap.put(0.08, true);
+		/*	curSuccessMap.put(0.09, true);
+			*/
 		
 		}
 		else if (diff <= 0.04){
@@ -474,33 +487,34 @@ public class EMComputeLambdas {
 			curSuccessMap.put(0.06, true);
 			curSuccessMap.put(0.07, true);
 			curSuccessMap.put(0.08, true);
-			curSuccessMap.put(0.09, true);
+/*			curSuccessMap.put(0.09, true);
+			*/
 		}
 		else if (diff <= 0.05){
 			curSuccessMap.put(0.05, true);
 			curSuccessMap.put(0.06, true);
 			curSuccessMap.put(0.07, true);
 			curSuccessMap.put(0.08, true);
-			curSuccessMap.put(0.09, true);
-		}
+/*			curSuccessMap.put(0.09, true);
+	*/	}
 		else if (diff <= 0.06){
 			curSuccessMap.put(0.06, true);
 			curSuccessMap.put(0.07, true);
 			curSuccessMap.put(0.08, true);
-			curSuccessMap.put(0.09, true);
-		}
+/*			curSuccessMap.put(0.09, true);
+	*/	}
 		else if (diff <= 0.07){
 			curSuccessMap.put(0.07, true);
 			curSuccessMap.put(0.08, true);
-			curSuccessMap.put(0.09, true);
-		}
+	/*		curSuccessMap.put(0.09, true);
+	*/	}
 		else if (diff <= 0.08){
 			curSuccessMap.put(0.08, true);
-			curSuccessMap.put(0.09, true);
+	//		curSuccessMap.put(0.09, true);
 		}
-		else if (diff <= 0.09)
+	/*	else if (diff <= 0.09)
 			curSuccessMap.put(0.09, true);
-
+*/
 		return curSuccessMap;
 	}
 

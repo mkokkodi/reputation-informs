@@ -14,7 +14,7 @@ import flanagan.analysis.Regression;
 
 import kokkodis.Reputation;
 import kokkodis.utils.GlobalVariables;
-import kokkodis.factory.PropertiesFactory;
+import kokkodis.holders.PropertiesFactory;
 
 public class RunRegressions {
 
@@ -213,7 +213,7 @@ public class RunRegressions {
 		}
 		printCeffsToFile(coeffs);
 		if (printCoeffs)
-			printCoeffs(coeffs, null);
+			printCoeffs(coeffs);
 
 		return coeffs;
 
@@ -284,7 +284,6 @@ public class RunRegressions {
 		/**
 		 * key,cats
 		 */
-		
 		for (int curCat : curCatIds) {
 			if (curCat != 0) {
 				String str = curCat +basedOn+",";
@@ -292,7 +291,7 @@ public class RunRegressions {
 				for(int catId:Utils.getCurCatIds()){
 					str+=tmp.get(catId) + ",";
 				}
-				System.out.println();
+				//System.out.println();
 				coeffsFile.writeToFile(str);
 			/*	str += tmp[tmp.length - 1];
 				if (pf != null)
@@ -307,17 +306,25 @@ coeffsFile.closeFile();
 
 
 	private static String getCoeffsFile() {
-		return "coeffs_"+GlobalVariables.curModel+"_"+GlobalVariables.curApproach+"_"+ GlobalVariables.curCluster+"_"+
+		return "coeffs_"+GlobalVariables.curModel
+				+"_"+GlobalVariables.curApproach+"_"+ GlobalVariables.curCluster+"_"+
 	(GlobalVariables.curModel.equals("Binomial")?GlobalVariables.currentBinomialThreshold+"":"")+
-	(Reputation.crossValidation?GlobalVariables.currentFold:"")+".csv";
+	(Reputation.crossValidation?GlobalVariables.currentFold:"")+
+	(GlobalVariables.evaluateOnTransitions?"_onTransitions":"")+".csv";
 	}
 
-	public static void printCoeffs(HashMap<String, HashMap<Integer, Double>> coeffs,
-			PrintToFile pf) {
+	public static void printCoeffs(HashMap<String, HashMap<Integer, Double>> coeffs) {
+		
+		System.out.print("\t ");
+		for(int catId:Utils.getCurCatIds()){
+			System.out.print(" | " +catId);
+		}
+		System.out.println();
+	
 		for (int curCat : curCatIds) {
 			if (curCat != 0) {
 
-				String str = "";
+				System.out.print(curCat+" | ");
 				HashMap<Integer,Double> tmp = coeffs.get(curCat +basedOn);
 				for(int catId:Utils.getCurCatIds()){
 					System.out.print(tmp.get(catId) + "\t");
