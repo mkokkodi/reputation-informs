@@ -1,5 +1,7 @@
 package kokkodis.holders;
 
+import java.util.LinkedList;
+
 public class ErrorHolder {
 
 	private double baselineMAESum;
@@ -11,10 +13,19 @@ public class ErrorHolder {
 	private double baselineMSESum;
 	private double basicModelMSESum;
 	public double totalEvaluations;
+	
+	private LinkedList<Double>  maeModelList;
+	private LinkedList<Double>  mseModelList;
+	private LinkedList<Double>  maeBaselineList;
+	private LinkedList<Double>  mseBaselineList;
 
 	public ErrorHolder() {
 		super();
 
+		maeModelList = new LinkedList<Double>();
+		mseModelList = new LinkedList<Double>();
+		maeBaselineList = new LinkedList<Double>();
+		mseBaselineList = new LinkedList<Double>();
 		baselineMAESum = 0;
 		totalEvaluations = 0;
 		basicModelMAESum = 0;
@@ -32,8 +43,35 @@ public class ErrorHolder {
 
 
 
+	public LinkedList<Double> getMaeModelList() {
+		return maeModelList;
+	}
+
+
+
+	public LinkedList<Double> getMseModelList() {
+		return mseModelList;
+	}
+
+
+
 	public void setKalmanMAESum(double kalmanMAESum) {
 		KalmanMAESum = kalmanMAESum;
+	}
+
+
+
+
+
+
+	public LinkedList<Double> getMaeBaselineList() {
+		return maeBaselineList;
+	}
+
+
+
+	public LinkedList<Double> getMseBaselineList() {
+		return mseBaselineList;
 	}
 
 

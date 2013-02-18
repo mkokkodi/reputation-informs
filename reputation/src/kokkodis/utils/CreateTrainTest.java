@@ -97,12 +97,17 @@ public class CreateTrainTest {
 			while ((line = input.readLine()) != null) {
 				RawInstance ri = Utils.stringToRawInstance(line);
 
-				if (catInCluster(ri.getCategory())
-						|| (GlobalVariables.curCluster.equals("r") && GlobalVariables.hierarchicalFlag)) {
+				if (catInCluster(ri.getCategory())){
+						
 
 					updateWorkerHistoryAndPrintTuple(dataMapHolder,
 							ri.getContractor(), ri.getCategory(), ri.getScore());
+				}else if(GlobalVariables.hierarchicalFlag && GlobalVariables.curCluster.equals("r") ) {
+					ri.setCategory(globalVariables.getCategoryToAbstractCategory().get(ri.getCategory()));
+					updateWorkerHistoryAndPrintTuple(dataMapHolder,
+							ri.getContractor(), ri.getCategory(), ri.getScore());
 				}
+			
 			}
 			input.close();
 		} catch (IOException e) {
@@ -224,6 +229,8 @@ public class CreateTrainTest {
 			}
 
 		}
+		
+		//System.out.println(Utils.getLogit(Utils.fix(score)));
 		str += "," + cat + "," + Utils.getLogit(Utils.fix(score));
 		// System.out.println("Adding tupple:"+str);
 		globalVariables.getOutputFile().writeToFile(str);
@@ -273,7 +280,6 @@ public class CreateTrainTest {
 			qij = Utils.getDirichletPointEstimate(mc.getQ_ijk());
 		else
 			qij = Utils.getDirichletDistroEstimate(mc.getBucketSuccesses());
-
 		str += "," + Utils.getLogit(Utils.fix(qij));
 		return str;
 	}

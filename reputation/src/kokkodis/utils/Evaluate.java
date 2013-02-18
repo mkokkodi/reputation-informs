@@ -5,7 +5,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map.Entry;
+
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import kokkodis.holders.BinCategory;
 import kokkodis.holders.ErrorHolder;
@@ -26,6 +29,10 @@ public class Evaluate {
 	private static String basedon;
 	private static HashMap<String, HashMap<String, Double>> lambdas;
 	private static HashMap<Integer, KalmanParameterHolder> thetaPerCategory;
+	private static int hugeErrors = 0;
+	private static final double trustError = 0.5;
+	private static double largerErrorModel = 0;
+	private static PrintToFile bigErrors = new PrintToFile();
 
 	public static void evaluate() {
 
@@ -46,27 +53,44 @@ public class Evaluate {
 				.println("model | approach |  ScoreThreshold | HistoryThreshold | MAE-model"
 						+ " | MAE-Baseline"
 						// + " | MAE-EM"
-						+ " | MSE-model" + " | MSE-Baseline");
+						+ " | MSE-model" + " | MSE-Baseline |");
+		// Number oF Baseline Prediction");
 
 		int limit = (GlobalVariables.evaluateOnTrain ? 3 : 15);
 		int initial = (GlobalVariables.evaluateOnTrain ? 3 : 3);
+		// bigErrors.openFile(PropertiesFactory.getInstance().getProps().getProperty("results")+"bigErrors.csv");
+		// bigErrors.writeToFile("history,model,error");
 		for (historyThreshold = initial; historyThreshold <= limit; historyThreshold += 2) {
 
 			errorHolder = new ErrorHolder();
-
+			hugeErrors = 0;
+			largerErrorModel = 0;
 			readAndEvaluate();
 
-			double maeBaseline = errorHolder.getBaselineMAESum()
-					/ errorHolder.getTotalEvaluations();
-			double maeBasicModel = errorHolder.getBasicModelMAESum()
-					/ errorHolder.getTotalEvaluations();
+			// System.out.println("Huge Errors:"+hugeErrors+" Total:"+(errorHolder.getTotalEvaluations()+hugeErrors));
+			/*
+			 * double maeBaseline = errorHolder.getBaselineMAESum() /
+			 * errorHolder.getTotalEvaluations(); double maeBasicModel =
+			 * errorHolder.getBasicModelMAESum() /
+			 * errorHolder.getTotalEvaluations();
+			 * 
+			 * double mseBasicModel = errorHolder.getBinomialModelMSESum() /
+			 * errorHolder.getTotalEvaluations();
+			 * 
+			 * double mseBaseline = errorHolder.getBaselineMSESum() /
+			 * errorHolder.getTotalEvaluations();
+			 */
 
-			double mseBasicModel = errorHolder.getBinomialModelMSESum()
-					/ errorHolder.getTotalEvaluations();
+			DescriptiveStatistics modelMAE = getDescriptiveStatistics(errorHolder
+					.getMaeModelList());
+			DescriptiveStatistics modelMSE = getDescriptiveStatistics(errorHolder
+					.getMseModelList());
+			DescriptiveStatistics baselineMAE = getDescriptiveStatistics(errorHolder
+					.getMaeBaselineList());
+			DescriptiveStatistics baselineMSE = getDescriptiveStatistics(errorHolder
+					.getMseBaselineList());
 
-			double mseBaseline = errorHolder.getBaselineMSESum()
-					/ errorHolder.getTotalEvaluations();
-
+			// modelMAE.ge
 			// double maeEMModel = errorHolder.getEMModelMAESum()
 			// / errorHolder.getTotalEvaluations();
 
@@ -94,13 +118,14 @@ public class Evaluate {
 									+ (GlobalVariables.curApproach + ",")
 									// )
 									+ resStr.replaceAll(" \\| ", ",")
-									+ maeBaseline
+									+ baselineMAE.getMean()
 									+ ","
-									+ maeBaseline
+									+ baselineMAE.getMean()
 									+ ","
-									+ mseBaseline + "," + mseBaseline);
-				
-					
+									+ baselineMSE.getMean()
+									+ ","
+									+ baselineMSE.getMean());
+
 				}
 
 				/*
@@ -119,11 +144,13 @@ public class Evaluate {
 								+ GlobalVariables.curModel
 								+ ",Basic Model,"
 								+ resStr.replaceAll(" \\| ", ",")
-								+ maeBasicModel
+								+ modelMAE.getMean()
 								+ ","
-								+ maeBaseline
+								+ baselineMAE.getMean()
 								+ ","
-								+ mseBasicModel + "," + mseBaseline);
+								+ modelMSE.getMean()
+								+ ","
+								+ baselineMSE.getMean());
 				/*
 				 * GlobalVariables.allResultsFile
 				 * .writeToFile(((GlobalVariables.synthetic) ? (GlobalVariables
@@ -134,14 +161,42 @@ public class Evaluate {
 				 */
 
 			}
-			
-			resStr += maeBasicModel + " | " + maeBaseline + "|" + mseBasicModel
-					+ " | " + mseBaseline;
+
+			resStr += Utils.getStringFromDouble(modelMAE.getMean())
+					+ "("
+					+ Utils.getStringFromDouble(modelMAE.getStandardDeviation())
+					+ ")"
+					+ " | "
+					+ Utils.getStringFromDouble(baselineMAE.getMean())
+					+ "("
+					+ Utils.getStringFromDouble(baselineMAE
+							.getStandardDeviation()) + ")" + "|"
+					+ Utils.getStringFromDouble(modelMSE.getMean()) + " | "
+					+ Utils.getStringFromDouble(baselineMSE.getMean()) + "|";
+			// +
+			// (double)hugeErrors/(double)(errorHolder.getTotalEvaluations()+hugeErrors)+
+			// "|"+
+			// (double)largerErrorModel/(double)(errorHolder.getTotalEvaluations()+hugeErrors);
 			// + maeEMModel + " | " + maClusteredMModel;
 
 			System.out.println(GlobalVariables.curModel + " | " + resStr);
 
 		}
+		// bigErrors.closeFile();
+
+	}
+
+	private static DescriptiveStatistics getDescriptiveStatistics(
+			LinkedList<Double> list) {
+		double[] tmp = new double[list.size()];
+		int i = 0;
+		for (double d : list) {
+			tmp[i] = d;
+			i++;
+		}
+
+		DescriptiveStatistics ds = new DescriptiveStatistics(tmp);
+		return ds;
 
 	}
 
@@ -291,7 +346,6 @@ public class Evaluate {
 
 			while ((line = input.readLine()) != null) {
 				RawInstance ri = Utils.stringToRawInstance(line);
-
 				updateEvalWorker(dataMapHolderEval, ri);
 			}
 			input.close();
@@ -476,7 +530,14 @@ public class Evaluate {
 
 		double emquality = 0;
 
-		modelQuality = predictModelQuality(evalWorker, ri, "r");
+		baselineEstimatedQuality = estimateAvg(evalWorker);
+
+		modelQuality = predictModelQuality(
+				evalWorker,
+				ri,
+				globalVariables.getCategoriesToClusters()
+						.get(globalVariables.getCatIntToName().get(
+								ri.getCategory())), baselineEstimatedQuality);
 
 		/*
 		 * if (GlobalVariables.hierarchicalFlag) { if
@@ -492,7 +553,6 @@ public class Evaluate {
 		 * .getClusteredModelMAESum() + clusterSpecificAbsoluteError); }
 		 */
 		modelAbsoluteError = (Math.abs(modelQuality - ri.getScore()));
-		baselineEstimatedQuality = estimateAvg(evalWorker);
 
 		/*
 		 * if (GlobalVariables.curModel.equals("Binomial")) {
@@ -520,17 +580,35 @@ public class Evaluate {
 		baselineAbsoluteError = (Math.abs(baselineEstimatedQuality
 				- ri.getScore()));
 
-		errorHolder.setBasicModelMAESum(errorHolder.getBasicModelMAESum()
-				+ modelAbsoluteError);
+		/*
+		 * if(modelAbsoluteError - baselineAbsoluteError>0.1){
+		 * largerErrorModel++; //System.out.println(modelQuality+
+		 * " "+baselineEstimatedQuality+" "+ri.getScore()+" "+ri.getCategory());
+		 * // bigErrors.writeToFile(historyThreshold+",model,"+modelQuality);
+		 * bigErrors
+		 * .writeToFile(historyThreshold+",baseline,"+baselineEstimatedQuality);
+		 * bigErrors.writeToFile(historyThreshold+",score,"+ri.getScore()); }
+		 */
 
-		errorHolder.setBinomialModelMSESum(errorHolder.getBinomialModelMSESum()
-				+ (Math.pow(modelAbsoluteError, 2)));
+		errorHolder.getMaeModelList().add(modelAbsoluteError);
+		errorHolder.getMseModelList().add(Math.pow(modelAbsoluteError, 2));
+		errorHolder.getMaeBaselineList().add(baselineAbsoluteError);
+		errorHolder.getMseBaselineList()
+				.add(Math.pow(baselineAbsoluteError, 2));
 
-		errorHolder.setBaselineMAESum(errorHolder.getBaselineMAESum()
-				+ baselineAbsoluteError);
-
-		errorHolder.setBaselineMSESum(errorHolder.getBaselineMSESum()
-				+ Math.pow(baselineAbsoluteError, 2));
+		/*
+		 * errorHolder.setBasicModelMAESum(errorHolder.getBasicModelMAESum() +
+		 * modelAbsoluteError);
+		 * 
+		 * errorHolder.setBinomialModelMSESum(errorHolder.getBinomialModelMSESum(
+		 * ) + (Math.pow(modelAbsoluteError, 2)));
+		 * 
+		 * errorHolder.setBaselineMAESum(errorHolder.getBaselineMAESum() +
+		 * baselineAbsoluteError);
+		 * 
+		 * errorHolder.setBaselineMSESum(errorHolder.getBaselineMSESum() +
+		 * Math.pow(baselineAbsoluteError, 2));
+		 */
 		if (GlobalVariables.printFiles && GlobalVariables.outputPredictions) {
 			if (GlobalVariables.evaluateOnTrain) {
 
@@ -598,31 +676,46 @@ public class Evaluate {
 	}
 
 	private static double predictModelQuality(EvalWorker evalWorker,
-			RawInstance ri, String cluster) {
+			RawInstance ri, String cluster, double baselineEstimatedQuality) {
 		HashMap<Integer, ModelCategory> hm;
 		HashMap<Integer, Double> coeffs;
 		/**
 		 * Use of root model.
 		 */
+
 		coeffs = getCurrentCoeffsAndSetBasedOn(cluster, ri.getCategory());
 		hm = getAppropriateMap(cluster, evalWorker);
 		curCatIds = Utils.getCurCatIds(cluster);
 		// System.out.println(" curCluster:R");
 
-		return finalModelEstimation(coeffs, hm);
+		return finalModelEstimation(coeffs, hm, baselineEstimatedQuality);
 	}
 
 	private static HashMap<Integer, ModelCategory> getAppropriateMap(
 			String cluster, EvalWorker evalWorker) {
+
 		if (cluster.equals("r"))
 			return evalWorker.getGenericHistoryMap();
-		if (cluster.equals("rl"))
-			return evalWorker.getNonTechHistoryMap();
-		return evalWorker.getTechnicalHistoryMap();
+		if (cluster.equals("rl")) // hierarchical flag is true to reach this
+									// point
+			if (evalWorker.getNonTechHistoryMap().size() > GlobalVariables.gamma){
+				//System.out.println("Nion technical");
+				return evalWorker.getNonTechHistoryMap();
+			}
+			else{
+			//	System.out.println("Non technical generic");
+				return evalWorker.getGenericHistoryMap();
+			}
+		if (evalWorker.getTechnicalHistoryMap().size() > GlobalVariables.gamma){
+			//System.out.println("Technical");
+			return evalWorker.getTechnicalHistoryMap();
+		}
+		//System.out.println("Technical Generic");
+		return evalWorker.getGenericHistoryMap();
 	}
 
 	private static double finalModelEstimation(HashMap<Integer, Double> coeffs,
-			HashMap<Integer, ModelCategory> hm) {
+			HashMap<Integer, ModelCategory> hm, double baselineEstimatedQuality) {
 		double modelQuality = 0;
 
 		if (GlobalVariables.curModel.equals("Binomial")) {
@@ -641,7 +734,15 @@ public class Evaluate {
 				modelQuality = multinomialDistroEstimate(coeffs, hm);
 
 		}
-		return Utils.inverseLogit(modelQuality);
+
+		modelQuality = Utils.inverseLogit(modelQuality);
+		/*
+		 * if(Math.abs(modelQuality - baselineEstimatedQuality) > trustError){
+		 * hugeErrors++; modelQuality =
+		 * (baselineEstimatedQuality+modelQuality)/2; }
+		 */
+
+		return modelQuality;
 
 	}
 
@@ -750,6 +851,7 @@ public class Evaluate {
 						* Utils.getLogit(Utils.fix(Utils.getDistroEstimate(
 								bc.getX(), bc.getN())));
 		}
+
 		return modelQuality;
 
 	}

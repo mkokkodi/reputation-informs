@@ -52,8 +52,13 @@ public class Reputation {
 			Utils.printHelp();
 		else {
 			for (int i = 0; i < args.length; i++) {
+				if (args[i].contains("-tp")){
+					train = true;
+					GlobalVariables.printRegressionFiles = true;
+				}
 				if (args[i].contains("-t"))
 					train = true;
+				
 				if (args[i].contains("-g"))
 					create = true;
 				if (args[i].contains("-e"))
@@ -304,6 +309,7 @@ public class Reputation {
 
 	private static void train() {
 		System.out.println("Training...");
+		
 		for (String model : globalVars.getModels()) {
 
 			for (String approach : globalVars.getApproaches()) {

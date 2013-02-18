@@ -3,6 +3,8 @@ package kokkodis.utils;
 import java.util.HashMap;
 import java.util.Properties;
 
+import com.sun.corba.se.impl.encoding.OSFCodeSetRegistry.Entry;
+
 import kokkodis.holders.PropertiesFactory;
 
 /*
@@ -10,6 +12,8 @@ import kokkodis.holders.PropertiesFactory;
  */
 
 public class GlobalVariables {
+
+	public static  boolean printRegressionFiles = false;
 
 	private static GlobalVariables globaleVars = null;
 
@@ -38,6 +42,7 @@ public class GlobalVariables {
 	public static double[] binomialPrior;
 	public static double[] multinomialPrior;
 	public static double multinomialPriorTotal;
+	public static int gamma;
 
 	private int historyThr;
 	private String[] approaches;
@@ -52,6 +57,8 @@ public class GlobalVariables {
 	private HashMap<String, Integer> catNameToInt;
 	private HashMap<String, String> clusterToBasedOn;
 	private HashMap<Integer,String> categoriesToRoot;
+	private HashMap<String,String> clustersToAbstractCategories;
+	private HashMap<Integer,Integer> categoryToAbstractCategory;
 	public static int folds=-1;
 	public static Integer currentFold = null;
 
@@ -109,6 +116,7 @@ public class GlobalVariables {
 		curCoeffs = new HashMap<String, HashMap<String, HashMap<Integer, Double>>>();
 		outputFile = new PrintToFile();
 		props = PropertiesFactory.getInstance().getProps();
+		gamma = Integer.parseInt(props.getProperty("gamma"));
 		rsTrials = Integer.parseInt(props.getProperty("RS-trials"));
 		models = props.getProperty("models").split(",");
 		approaches = props.getProperty("approaches").split(",");
@@ -179,6 +187,21 @@ public class GlobalVariables {
 			qualities[i] = q;
 		}
 		outOfScore = Double.parseDouble(props.getProperty("outOfScore"));
+		clustersToAbstractCategories = new HashMap<String, String>();
+		for (String s : props.getProperty("clusters-to-abstract").split(",")) {
+			String[] t = s.split(":");
+			clustersToAbstractCategories.put(t[0], t[1]);
+		}
+
+		categoryToAbstractCategory = new HashMap<Integer, Integer>();
+		for(java.util.Map.Entry<String, Integer> e: catNameToInt.entrySet()){
+			if(categoriesToClusters.get(e.getKey()).equals("rl")){
+				categoryToAbstractCategory.put(e.getValue(),1);
+			}else{
+				categoryToAbstractCategory.put(e.getValue(),2);
+			}
+		}
+		
 
 	}
 
@@ -187,6 +210,22 @@ public class GlobalVariables {
 			globaleVars = new GlobalVariables();
 
 		return globaleVars;
+	}
+
+	/**
+	 * Maps rr to technical and rl to nontechnical. 
+	 * Input is "rr" or "rl".
+	 * @return
+	 */
+	public HashMap<String, String> getClustersToAbstractCategories() {
+		return clustersToAbstractCategories;
+	}
+/**
+ * 
+ * @return the mapping of category to "1" (if rl) or 2 (if rr);
+ */
+	public HashMap<Integer, Integer> getCategoryToAbstractCategory() {
+		return categoryToAbstractCategory;
 	}
 
 	public static GlobalVariables getGlobaleVars() {

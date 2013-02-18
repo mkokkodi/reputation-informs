@@ -7,14 +7,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import flanagan.control.Prop;
 
 import kokkodis.holders.KalmanEMInstanceHolder;
 import kokkodis.holders.KalmanParameterHolder;
 import kokkodis.holders.KalmanStateHolder;
 import kokkodis.holders.PropertiesFactory;
 import kokkodis.utils.PrintToFile;
-import kokkodis.utils.RunRegressions;
 import kokkodis.utils.Utils;
 
 public class EstimateParameters {
