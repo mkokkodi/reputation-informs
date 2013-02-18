@@ -538,6 +538,7 @@ public class Evaluate {
 				globalVariables.getCategoriesToClusters()
 						.get(globalVariables.getCatIntToName().get(
 								ri.getCategory())), baselineEstimatedQuality);
+		//System.out.println(modelQuality);
 
 		/*
 		 * if (GlobalVariables.hierarchicalFlag) { if
@@ -769,12 +770,12 @@ public class Evaluate {
 		HashMap<String, HashMap<Integer, Double>> tmpCoeff = GlobalVariables
 				.getCurCoeffs().get(cluster);
 		basedon = globalVariables.getClusterToBasedOn().get(cluster);
-		HashMap<Integer, Double> tmp = tmpCoeff.get(cat + basedon);
+		HashMap<Integer, Double> tmp = tmpCoeff.get(cat+"");
 		if (tmp == null) {
-			System.out.println("Cluster:" + cluster + " Cat:" + cat
+			System.err.println("Cluster:" + cluster + " Cat:" + cat
 					+ " basedOn:" + basedon + " gives me null coeffs.");
 			for (String key : tmpCoeff.keySet()) {
-				System.out.println(key);
+				System.err.println(key);
 			}
 			System.exit(-1);
 

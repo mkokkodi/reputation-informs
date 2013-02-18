@@ -59,9 +59,9 @@ public class Utils {
 
 	public static double fix(double l) {
 		if (l < 0.01)
-			return 0.01;
+			return 0.0001;
 		if (l > 0.99)
-			return 0.99;
+			return 0.9999;
 		return l;
 	}
 

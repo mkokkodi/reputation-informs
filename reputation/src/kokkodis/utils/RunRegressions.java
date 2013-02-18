@@ -325,19 +325,28 @@ public class RunRegressions {
 				.getProperty("regressionOutPath")
 				+ getCoeffsFile();
 		coeffsFile.openFile(fileName);
+		/**
+		 * _BasedOn_0_1_2
+		 */
+		String [] tmpAr = basedOn.split("_");
+		StringBuffer sb = new StringBuffer();
+		sb.append("category");
+		for(int i=2; i<tmpAr.length; i++)
+			sb.append(","+tmpAr[i]);
+		coeffsFile.writeToFile(sb.toString());
 		System.out.println("Printing coefficients at:" + fileName);
 		/**
 		 * key,cats
 		 */
 		for (int curCat : curCatIds) {
 			if (curCat != 0) {
-				String str = curCat + basedOn + ",";
+				String str = curCat  + ",";
 				HashMap<Integer, Double> tmp = coeffs.get(curCat + basedOn);
 				for (int catId : Utils.getCurCatIds()) {
 					str += tmp.get(catId) + ",";
 				}
 				// System.out.println();
-				coeffsFile.writeToFile(str);
+				coeffsFile.writeToFile(str.substring(0,str.length()-1));
 				/*
 				 * str += tmp[tmp.length - 1]; if (pf != null)
 				 * pf.writeToFile(str);
@@ -403,7 +412,7 @@ public class RunRegressions {
 		System.out.println("Reading coefficients from file:" + fileName);
 		try {
 			BufferedReader input = new BufferedReader(new FileReader(fileName));
-			String line;
+			String line = input.readLine();
 			/**
 			 * key, coefficients....
 			 */
@@ -417,7 +426,7 @@ public class RunRegressions {
 
 					i++;
 				}
-				coeffs.put(key, curCoeffs);
+				coeffs.put(key.trim(), curCoeffs);
 			}
 			input.close();
 		} catch (IOException e) {
