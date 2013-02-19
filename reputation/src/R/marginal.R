@@ -9,12 +9,14 @@ computeMarginalEffects(cats,raw)
 
 computeMarginalEffects<-function(cats,raw){
   for (cat in cats){
-    if(cat != 0)
     cat(sprintf("& %s  ",cat))
   }
   cat("\\\\ \n ")
-  
-i<-2
+for (i in 1:nrow(coeffs))
+{
+  cat(sprintf("%i ",cats[i]))
+  #column
+  j <-2
 for (cat in cats){
  if (cat==0){
    q <- mean((raw$score/5))
@@ -23,14 +25,13 @@ for (cat in cats){
   q <- mean((raw[raw$category==cat,]$score/5))
 }
 
-  me <- coeffs[i] /(q * (1-q))
- cat(sprintf("%i ",cat))
+  me <- coeffs[i,][j] /(q * (1-q))
+ cat(sprintf("& %f ", me))
 
- for(effect in me){
-  cat(sprintf("& %f ", effect))
- }
- cat("\\\\ \n ")
-  i <- 1+1
+ 
+  j <- j+1
+}
+  
+  cat("\\\\ \n ")
 }
 }
-
