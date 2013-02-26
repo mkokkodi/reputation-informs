@@ -2,7 +2,7 @@
 drop table if exists mkokkodi.reputation_train_test;
 create table mkokkodi.reputation_train_test as
 select t1."Record ID#" as "feedbackId", 
-"Developer (ref)" as contractor, order1 as category, "Provider Availability Score"
+"Developer (ref)" as contractor, order1 as category, cat_id as special_cat, "Provider Availability Score"
 as availability,  "EndDate" as job_date,  
 "Provider Total Score" as total, 
 "Provider Communication Score" as communication,"Provider Cooperation Score" as cooperation,
@@ -41,12 +41,15 @@ distributed randomly
 
 create index someRandIndex on mkokkodi.reputation_train(job_date);
 
-create index someRandIndex2 on mkokkodi.reputation_test(job_date)
+create index someRandIndex2 on mkokkodi.reputation_test(job_date);
 
 select  contractor,category,
-(availability+communication+cooperation+deadlines+quality+skills+total)/7 as score 
+(availability+communication+cooperation+deadlines+quality+skills+total)/7/5 as score, special_cat
 from mkokkodi.reputation_test  where category is not null and length(category)>1
 order by job_date
 
 select (availability+communication+cooperation+deadlines+quality+skills+total)/7/5 as score 
 from mkokkodi.reputation_train  where category is not null and length(category)>1
+
+select * from mkokkodi.categories2level1
+limit 10
