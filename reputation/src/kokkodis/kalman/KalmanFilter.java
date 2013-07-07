@@ -119,13 +119,16 @@ public class KalmanFilter extends ModelCategory {
 				GlobalVariables.curApproach.equals("PE"))
 			return mean;
 		
-		double sum = 0;
+	/*	double sum = 0;
 		int total = 10;
 		for (int i = 0; i < total; i++) {
 			sum += Utils.getNormalEstimate(mean, var);
 		}
 
 		return sum / (double) (total);
+		*/
+		
+		return Utils.getNormalEstimate(mean, var);
 	}
 
 	private float estimate_v_n(float p_n_minus_1) {

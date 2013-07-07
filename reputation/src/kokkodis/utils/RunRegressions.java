@@ -26,6 +26,7 @@ public class RunRegressions {
 	private static Properties props;
 	private static ArrayList<Integer> curCatIds;
 	private static HashMap<String, ArrayList<String>> regressionData;
+	private static PrintToFile regFile = null;
 
 	public static void createRegressionFiles() {
 
@@ -141,7 +142,7 @@ public class RunRegressions {
 			ArrayList<Integer> curCatIds) {
 		String outFile = regressionOutPath
 				+ Utils.createFileName().replace(".csv", "") + "_" + catId
-				+ basedOn + ".csv";
+				+ basedOn + (GlobalVariables.hierarchicalFlag?"Hier":"")+".csv";
 		return outFile;
 
 	}
@@ -164,21 +165,22 @@ public class RunRegressions {
 	public static HashMap<String, HashMap<Integer, Double>> getCoeffs(
 			boolean printCoeffs) {
 		initializeVars();
+		
+		if (GlobalVariables.printRegressionFiles) {
+			regFile = new PrintToFile();
+			regFile.openFile(PropertiesFactory.getInstance().getProps()
+					.getProperty("regressionOutPath")
+					+ "regFile_"+GlobalVariables.curModel+GlobalVariables.curCluster+".csv");
+			String title = "baseCat,y";
+			for (String cat : globalVariables.getClusterCategories().get(GlobalVariables.curCluster)) {
+				title += "," + cat;
+			}
+			regFile.writeToFile(title);
+		}
 		// Reputation.print("Calculating coefficients for:"
 		// + Utils.createFileName());
 		HashMap<String, HashMap<Integer, Double>> coeffs = new HashMap<String, HashMap<Integer, Double>>();
-		PrintToFile pf = null;
-		if (GlobalVariables.printRegressionFiles) {
-			pf = new PrintToFile();
-			pf.openFile(PropertiesFactory.getInstance().getProps()
-					.getProperty("regressionOutPath")
-					+ "regFile.csv");
-			String title = "baseCat,y";
-			for (String cat : globalVariables.getClusterCategories().get("r")) {
-				title += "," + cat;
-			}
-			pf.writeToFile(title);
-		}
+	
 		for (int baseCat : curCatIds) {
 			if (baseCat != 0) {
 
@@ -210,7 +212,7 @@ public class RunRegressions {
 					}
 
 					if (GlobalVariables.printRegressionFiles) {
-						printRegressionFiles(pf, baseCat);
+						printRegressionFiles(regFile, baseCat);
 					}
 					Regression reg = new Regression(x, yArray);
 					try {
@@ -233,7 +235,7 @@ public class RunRegressions {
 					HashMap<Integer, Double> tmpHm = new HashMap<Integer, Double>();
 					for (String cat : globalVariables.getClusterCategories()
 							.get(GlobalVariables.curCluster)) {
-						tmpHm.put(globalVariables.getCatNameToInt().get(cat),
+						tmpHm.put(Integer.parseInt(cat),
 								tmp[i]);
 						i++;
 					}
@@ -246,6 +248,8 @@ public class RunRegressions {
 		if (printCoeffs)
 			printCoeffs(coeffs);
 
+		if(GlobalVariables.printRegressionFiles)
+			regFile.closeFile();
 		return coeffs;
 
 	}
@@ -270,6 +274,7 @@ public class RunRegressions {
 			ArrayList<String> data) {
 
 		int size = data.get(0).split(",").length;
+		
 		HashMap<Integer, ArrayList<Double>> vars = new HashMap<Integer, ArrayList<Double>>();
 		for (int i = 0; i < size; i++) {
 			ArrayList<Double> al = new ArrayList<Double>();
@@ -283,6 +288,7 @@ public class RunRegressions {
 			}
 
 		}
+		System.out.println("size:"+vars.get(0).size());
 		return vars;
 
 	}
@@ -372,7 +378,7 @@ public class RunRegressions {
 				+ (Reputation.crossValidation ? GlobalVariables.currentFold
 						: "")
 				+ (GlobalVariables.evaluateOnTransitions ? "_onTransitions"
-						: "") + ".csv";
+						: "") + (GlobalVariables.hierarchicalFlag?"hier":"")+".csv";
 	}
 
 	public static void printCoeffs(

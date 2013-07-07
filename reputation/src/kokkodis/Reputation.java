@@ -26,7 +26,7 @@ import java.util.HashMap;
 
 import kokkodis.holders.PropertiesFactory;
 import kokkodis.utils.AverageResults;
-import kokkodis.utils.CreateTrainTest;
+import kokkodis.utils.CreateTrainFile;
 import kokkodis.utils.Evaluate;
 import kokkodis.utils.GlobalVariables;
 import kokkodis.utils.PrintToFile;
@@ -52,13 +52,13 @@ public class Reputation {
 			Utils.printHelp();
 		else {
 			for (int i = 0; i < args.length; i++) {
-				if (args[i].contains("-tp")){
+				if (args[i].contains("-tp")) {
 					train = true;
 					GlobalVariables.printRegressionFiles = true;
 				}
 				if (args[i].contains("-t"))
 					train = true;
-				
+
 				if (args[i].contains("-g"))
 					create = true;
 				if (args[i].contains("-e"))
@@ -108,7 +108,16 @@ public class Reputation {
 							System.out.println("Running evaluation on Train.");
 						initEvalFiles();
 						// initPredictionsFile();
-						runEval();
+						if (GlobalVariables.hierarchicalFlag) {
+							for (GlobalVariables.gamma = 0; GlobalVariables.gamma <= 0; GlobalVariables.gamma += 2) {
+								GlobalVariables.baselinePrinted = false;
+								System.out.println("Running for gamma:"
+										+ GlobalVariables.gamma);
+
+								runEval();
+							}
+						} else
+							runEval();
 						closeEvalFiles();
 					}
 				}
@@ -132,7 +141,7 @@ public class Reputation {
 				System.out.println(GlobalVariables.line);
 				for (int i = 1; i <= GlobalVariables.folds; i++) {
 					System.out.println("Creating fold " + i);
-					CreateTrainTest.createDeveloperSets(i);
+					CreateTrainFile.createDeveloperSets(i);
 				}
 			}
 		}
@@ -177,10 +186,12 @@ public class Reputation {
 					+ ((GlobalVariables.currentFold != null) ? "_cv"
 							+ GlobalVariables.currentFold : "")
 					+ ((GlobalVariables.curModel.equals("Binomial")) ? ("_" + GlobalVariables.currentBinomialThreshold)
-							: "_"+GlobalVariables.curModel)
+							: "_" + GlobalVariables.curModel)
 					+ (GlobalVariables.syntheticCluster ? "" : "_real")
 					+ (GlobalVariables.evaluateOnTransitions ? "_onTransitions"
-							: "") + ".csv";
+							: "")
+					+ (GlobalVariables.hierarchicalFlag ? ("_hier") : "")
+					+ ".csv";
 			System.out.println("Prediction file:" + predictionFile);
 			GlobalVariables.predictions.openFile(predictionFile);
 			if (GlobalVariables.evaluateOnTrain)
@@ -208,16 +219,21 @@ public class Reputation {
 					+ ((GlobalVariables.synthetic) ? ("_syn" + (globalVars
 							.getClusterCategories().get("r").length - 1)) : "")
 					+ (GlobalVariables.evaluateOnTransitions ? "_onTransitions"
-							: "") + ".csv");
+							: "")
+					+ (GlobalVariables.hierarchicalFlag ? ("_hier") : "")
+					+ ".csv");
 
 			GlobalVariables.allResultsFile
-					.writeToFile(((GlobalVariables.synthetic) ? "categories,"
+					.writeToFile((GlobalVariables.hierarchicalFlag ? "gamma,"
 							: "")
+							+ ((GlobalVariables.synthetic) ? "categories," : "")
 							+ "model,exactModel,approach,ScoreThreshold,HistoryThreshold,MAEModel"
 							+ ",MAEBaseline,MSEModel,MSEBaseline");
 
 			globalVars.openFile(resultPath + "coeffs"
-					+ (crossValidation ? "_cv" : "") + ".csv");
+					+ (crossValidation ? "_cv" : "")
+					+ (GlobalVariables.hierarchicalFlag ? ("_hier") : "")
+					+ ".csv");
 
 		}
 
@@ -240,48 +256,53 @@ public class Reputation {
 
 			GlobalVariables.curModel = model;
 
-				if (model.equals("Binomial")) {
-					for (float currentBinomialThreshold : globalVars
-							.getScoreThresholds()) {
-						GlobalVariables.currentBinomialThreshold = currentBinomialThreshold;
-						initPredictionsFile();
-						for (String approach : globalVars.getApproaches()) {
-							GlobalVariables.curApproach = approach;
-
-							runEvalCluster();
-						}
-					}
-					GlobalVariables.baselinePrinted = true;
-					
-				} else { //Kalman or Multinomial.
+			if (model.equals("Binomial")) {
+				for (float currentBinomialThreshold : globalVars
+						.getScoreThresholds()) {
+					GlobalVariables.currentBinomialThreshold = currentBinomialThreshold;
 					initPredictionsFile();
 					for (String approach : globalVars.getApproaches()) {
 						GlobalVariables.curApproach = approach;
 
 						runEvalCluster();
-
 					}
-					GlobalVariables.baselinePrinted = true;
+				}
+				GlobalVariables.baselinePrinted = true;
+
+			} else { // Kalman or Multinomial.
+				initPredictionsFile();
+				for (String approach : globalVars.getApproaches()) {
+					GlobalVariables.curApproach = approach;
+
+					runEvalCluster();
 
 				}
+				GlobalVariables.baselinePrinted = true;
 
 			}
+
+		}
 
 	}
 
 	private static void runEvalCluster() {
-		for (String cluster : globalVars.getHierarchyStracture()) {
-			GlobalVariables.curCluster = cluster;
-			GlobalVariables.getCurCoeffs().put(cluster,
-					RunRegressions.readCoeffs());
+
+		if (GlobalVariables.evaluateKalman) {
+			Evaluate.evaluateKalman();
+		} else {
+			for (String cluster : globalVars.getHierarchyStracture()) {
+				GlobalVariables.curCluster = cluster;
+				GlobalVariables.getCurCoeffs().put(cluster,
+						RunRegressions.readCoeffs());
+			}
+
+			Reputation.print("Running evaluation for model:"
+					+ GlobalVariables.curModel + ", approach:"
+					+ GlobalVariables.curApproach + " cor cluster:"
+					+ GlobalVariables.curCluster);
+
+			Evaluate.evaluate();
 		}
-
-		Reputation.print("Running evaluation for model:"
-				+ GlobalVariables.curModel + ", approach:"
-				+ GlobalVariables.curApproach + " cor cluster:"
-				+ GlobalVariables.curCluster);
-
-		Evaluate.evaluate();
 
 	}
 
@@ -290,26 +311,26 @@ public class Reputation {
 
 		for (String model : globalVars.getModels()) {
 			GlobalVariables.curModel = model;
-				for (String approach : globalVars.getApproaches()) {
+			for (String approach : globalVars.getApproaches()) {
 
-					GlobalVariables.curApproach = approach;
-					if (model.equals("Binomial")) {
-						for (float currentBinomialThreshold : globalVars
-								.getScoreThresholds()) {
-							GlobalVariables.currentBinomialThreshold = currentBinomialThreshold;
+				GlobalVariables.curApproach = approach;
+				if (model.equals("Binomial")) {
+					for (float currentBinomialThreshold : globalVars
+							.getScoreThresholds()) {
+						GlobalVariables.currentBinomialThreshold = currentBinomialThreshold;
 
-							runModel();
-						}
-					} else
 						runModel();
-				}
+					}
+				} else
+					runModel();
 			}
+		}
 
 	}
 
 	private static void train() {
 		System.out.println("Training...");
-		
+
 		for (String model : globalVars.getModels()) {
 
 			for (String approach : globalVars.getApproaches()) {
@@ -344,7 +365,7 @@ public class Reputation {
 
 		for (String cluster : globalVars.getHierarchyStracture()) {
 			GlobalVariables.curCluster = cluster;
-			CreateTrainTest.generateTrainTestSets();
+			CreateTrainFile.generateTrainTestSets();
 		}
 
 	}

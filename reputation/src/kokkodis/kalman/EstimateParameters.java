@@ -5,6 +5,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map.Entry;
 
 
@@ -12,6 +14,7 @@ import kokkodis.holders.KalmanEMInstanceHolder;
 import kokkodis.holders.KalmanParameterHolder;
 import kokkodis.holders.KalmanStateHolder;
 import kokkodis.holders.PropertiesFactory;
+import kokkodis.utils.GlobalVariables;
 import kokkodis.utils.PrintToFile;
 import kokkodis.utils.Utils;
 
@@ -121,7 +124,7 @@ public class EstimateParameters {
 		PrintToFile pf = new PrintToFile();
 		String outPath = PropertiesFactory.getInstance().getProps()
 				.getProperty("rawPath");
-		pf.openFile(outPath + "real_kalmanPriors.csv");
+		pf.openFile(outPath + "real_kalmanPriors"+(GlobalVariables.hierarchicalFlag?"_hier":"")+".csv");
 		pf.writeToFile("category,mu_0,p_0,a,g,c,r");
 		for (Entry<String, KalmanParameterHolder> e : thetaPerCategory
 				.entrySet())
@@ -319,19 +322,59 @@ public class EstimateParameters {
 		HashMap<String, ArrayList<Float[]>> dataPerCategory = new HashMap<String, ArrayList<Float[]>>();
 		String inputDir = PropertiesFactory.getInstance().getProps()
 				.getProperty("rawPath");
+		GlobalVariables globalVariables = GlobalVariables.getInstance();
 		try {
 			BufferedReader input = new BufferedReader(new FileReader(inputDir
-					+ "trainSequential.csv")); //
+					+ "trainSequential"+(GlobalVariables.hierarchicalFlag?"_special":"")+".csv")); //
 			String line;
 			line = input.readLine();
 			/**
 			 * category, contractor, list_of_feedbacks
 			 */
-			float denom = Float.parseFloat(PropertiesFactory.getInstance()
-					.getProps().getProperty("outOfScore"));
+	
+			
 			while ((line = input.readLine()) != null) {
 				String[] tmpAr = line.split(",");
 				if (tmpAr.length >= (N + 2)) {
+					
+				
+					Float[] tmp = new Float[N];
+					for (int i = 2; i < N + 2; i++) {
+						tmp[i - 2] = Float.parseFloat(tmpAr[i].trim());
+					}
+			
+					
+					ArrayList<Float[]> specialAbstractCategoryList;
+					if(GlobalVariables.hierarchicalFlag){
+						
+						String curCluster = globalVariables.getCategoriesToClusters().get(tmpAr[0])+"";
+						if(curCluster.equals("null"))
+							System.out.println(tmpAr[0]);
+						specialAbstractCategoryList = dataPerCategory.get(curCluster);
+					
+				
+					if(specialAbstractCategoryList == null){
+						specialAbstractCategoryList = new ArrayList<Float[]>();
+						dataPerCategory.put(curCluster, specialAbstractCategoryList);
+						thetaPerCategory.put(curCluster,
+								new KalmanParameterHolder());
+					}
+					
+					specialAbstractCategoryList.add(tmp);
+					
+					ArrayList<Float[]> specializedZeroList = dataPerCategory.get(0+"_"+curCluster);
+					if (specializedZeroList == null) {
+						specializedZeroList = new ArrayList<Float[]>();
+						dataPerCategory.put(0+"_"+curCluster, specializedZeroList);
+						thetaPerCategory.put(0+"_"+curCluster,
+								new KalmanParameterHolder());
+					}
+					
+					specializedZeroList.add(tmp);
+					
+					}
+				
+					
 					ArrayList<Float[]> curList = dataPerCategory.get(tmpAr[0]);
 					if (curList == null) {
 						curList = new ArrayList<Float[]>();
@@ -339,11 +382,18 @@ public class EstimateParameters {
 						thetaPerCategory.put(tmpAr[0],
 								new KalmanParameterHolder());
 					}
-					Float[] tmp = new Float[N];
-					for (int i = 2; i < N + 2; i++) {
-						tmp[i - 2] = Float.parseFloat(tmpAr[i].trim()) / denom;
+					
+					ArrayList<Float[]> genericList = dataPerCategory.get(0+"");
+					if (genericList == null) {
+						genericList = new ArrayList<Float[]>();
+						dataPerCategory.put(0+"", curList);
+						thetaPerCategory.put(0+"",
+								new KalmanParameterHolder());
 					}
+					
 					curList.add(tmp);
+					genericList.add(tmp);
+					
 					// break;
 				}
 			}

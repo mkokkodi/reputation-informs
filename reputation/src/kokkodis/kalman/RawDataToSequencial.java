@@ -21,8 +21,8 @@ public class RawDataToSequencial {
 				.getProperty("rawPath")
 				;
 		
-		 String inputFile = "syn_cluster_train.csv";
-		 String outputFile = "synSequential.csv";
+		 String inputFile = "train_special.csv";
+		 String outputFile = "trainSequential_special.csv";
 		/**
 		 * category -> contractor -> feedbacks
 		 */
@@ -86,19 +86,20 @@ public class RawDataToSequencial {
 					curCategoryMap.put(contractor, curFeedBacks);
 				}
 				curFeedBacks.add(score);
-				 curCategoryMap = dataByCategoryByContractor
+		/*		 curCategoryMap = dataByCategoryByContractor
 						.get(""+0);
 				if (curCategoryMap == null) {
 					curCategoryMap = new HashMap<String, ArrayList<String>>();
 					dataByCategoryByContractor.put(""+0, curCategoryMap);
 				}
+				
 				curFeedBacks = curCategoryMap.get(contractor);
 				if (curFeedBacks == null) {
 					curFeedBacks = new ArrayList<String>();
 					curCategoryMap.put(contractor, curFeedBacks);
 				}
 				curFeedBacks.add(score);
-		
+		*/
 			}
 			input.close();
 			return dataByCategoryByContractor;

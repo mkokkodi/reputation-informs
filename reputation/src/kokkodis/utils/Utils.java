@@ -59,9 +59,9 @@ public class Utils {
 
 	public static double fix(double l) {
 		if (l < 0.01)
-			return 0.0001;
+			return 0.001;
 		if (l > 0.99)
-			return 0.9999;
+			return 0.999;
 		return l;
 	}
 
@@ -171,7 +171,8 @@ public class Utils {
 				+ (GlobalVariables.curModel.equals("Binomial") ? "_"
 						+ GlobalVariables.currentBinomialThreshold : "")
 				+ ((GlobalVariables.currentFold != null) ? "_"
-						+ GlobalVariables.currentFold : "") + ".csv";
+						+ GlobalVariables.currentFold : "") +
+						(GlobalVariables.hierarchicalFlag?"_hier":"")+".csv";
 		return res;
 	}
 
@@ -181,8 +182,7 @@ public class Utils {
 	public static RawInstance stringToRawInstance(String line) {
 		RawInstance ri = new RawInstance();
 		String[] tmpAr = line.split(",");
-		ri.setScore(Double.parseDouble(tmpAr[2].trim())
-				/ GlobalVariables.getInstance().getOutOfScore());
+		ri.setScore(Double.parseDouble(tmpAr[2].trim()));
 		ri.setContractor(Integer.parseInt(tmpAr[0].trim()));
 		ri.setCategory(Integer.parseInt(tmpAr[1].trim()));
 		return ri;
@@ -214,11 +214,10 @@ public class Utils {
 	}
 
 	private static ArrayList<Integer> getIds(String[] curCategories) {
-		GlobalVariables globalVariables = GlobalVariables.getInstance();
 
 		ArrayList<Integer> res = new ArrayList<Integer>();
 		for (int i = 0; i < curCategories.length; i++) {
-			int catId = globalVariables.getCatNameToInt().get(curCategories[i]);
+			int catId = Integer.parseInt(curCategories[i]);
 			res.add(catId);
 
 		}
@@ -264,12 +263,7 @@ public class Utils {
 		try {
 			System.out.println(GlobalVariables.line);
 			System.out.println("Printing eval worker.");
-			System.out.println("Generic Map overal size:"
-					+ evalWorker.getGenericHistoryMap().get(0).getN());
-			System.out.println("RR map overal size:"
-					+ evalWorker.getTechnicalHistoryMap().get(0).getN());
-			System.out.println("RL map overal size:"
-					+ evalWorker.getNonTechHistoryMap().get(0).getN());
+			
 		} catch (NullPointerException ne) {
 			System.err.println("At least one was null.");
 		}
@@ -319,14 +313,15 @@ public class Utils {
 			//newVal = new NormalRandomVariable(mean, var).nextRandomVariable();
 		return newVal;
 	}
-	public static HashMap<Integer, KalmanParameterHolder> readThetas() {
+	public static HashMap<String, KalmanParameterHolder> readThetas() {
 		String inputDir = PropertiesFactory.getInstance().getProps()
 				.getProperty("rawPath");
-		HashMap<Integer, KalmanParameterHolder> hm = new HashMap<Integer, KalmanParameterHolder>();
+		HashMap<String, KalmanParameterHolder> hm = new HashMap<String, KalmanParameterHolder>();
 		try {
 			//String infile = (GlobalVariables.syntheticCluster)?
 			BufferedReader input = new BufferedReader(new FileReader(inputDir
-					+ (GlobalVariables.syntheticCluster?"":"real_")+"kalmanPriors.csv"));
+					+ (GlobalVariables.syntheticCluster?"":"real_")+"kalmanPriors"+
+					(GlobalVariables.hierarchicalFlag?"_hier":"")+".csv"));
 			String line;
 			line = input.readLine();
 
@@ -342,8 +337,8 @@ public class Utils {
 				h.setG(Float.parseFloat(tmpAr[4]));
 				h.setC(Float.parseFloat(tmpAr[5]));
 				h.setR(Float.parseFloat(tmpAr[6]));
-				hm.put(Integer.parseInt(tmpAr[0]), h);
-				System.out.println(h.toString());
+				hm.put(tmpAr[0], h);
+			//	System.out.println(h.toString());
 			}
 			input.close();
 		} catch (IOException e) {

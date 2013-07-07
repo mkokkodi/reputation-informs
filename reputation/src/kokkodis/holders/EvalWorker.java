@@ -13,9 +13,11 @@ public class EvalWorker {
 		this.workerId = workerId;
 	}
 
-	private HashMap<Integer, ModelCategory> genericHistoryMap;
-	private HashMap<Integer, ModelCategory> technicalHistoryMap;
-	private HashMap<Integer, ModelCategory> nonTechHistoryMap;
+	/*
+	 * cluster -> historyMap.
+	 */
+	private HashMap<String,HashMap<Integer, ModelCategory>> clusterHistoryMap;
+
 	private int previousCategory;
 
 	public int getPreviousCategory() {
@@ -26,22 +28,14 @@ public class EvalWorker {
 		this.previousCategory = previousCategory;
 	}
 
-	public HashMap<Integer, ModelCategory> getTechnicalHistoryMap() {
-		return technicalHistoryMap;
-	}
+	
 
-	public HashMap<Integer, ModelCategory> getNonTechHistoryMap() {
-		return nonTechHistoryMap;
-	}
-
-	public HashMap<Integer, ModelCategory> getGenericHistoryMap() {
-		return genericHistoryMap;
+	public HashMap<String,HashMap<Integer, ModelCategory>> getClusterHistoryMap() {
+		return clusterHistoryMap;
 	}
 
 	public EvalWorker() {
-		genericHistoryMap = new HashMap<Integer, ModelCategory>();
-		technicalHistoryMap = new HashMap<Integer, ModelCategory>();
-		nonTechHistoryMap = new HashMap<Integer, ModelCategory>();
+		clusterHistoryMap = new HashMap<String,HashMap<Integer, ModelCategory>>();
 		
 	}
 

@@ -1,9 +1,9 @@
 package kokkodis.utils;
 
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Properties;
 
-import com.sun.corba.se.impl.encoding.OSFCodeSetRegistry.Entry;
 
 import kokkodis.holders.PropertiesFactory;
 
@@ -43,6 +43,7 @@ public class GlobalVariables {
 	public static double[] multinomialPrior;
 	public static double multinomialPriorTotal;
 	public static int gamma;
+	public static boolean evaluateKalman;
 
 	private int historyThr;
 	private String[] approaches;
@@ -54,11 +55,11 @@ public class GlobalVariables {
 	private static Properties props;
 	private HashMap<String, String[]> clusterToCategories;
 	private HashMap<String, String> categoriesToClusters;
-	private HashMap<String, Integer> catNameToInt;
+	//private HashMap<String, Integer> catNameToInt;
 	private HashMap<String, String> clusterToBasedOn;
-	private HashMap<Integer,String> categoriesToRoot;
-	private HashMap<String,String> clustersToAbstractCategories;
-	private HashMap<Integer,Integer> categoryToAbstractCategory;
+	//private HashMap<Integer,String> categoriesToRoot;
+	//private HashMap<String,String> clustersToAbstractCategories;
+	//private HashMap<Integer,Integer> categoryToAbstractCategory;
 	public static int folds=-1;
 	public static Integer currentFold = null;
 
@@ -68,17 +69,17 @@ public class GlobalVariables {
 
 	public static boolean evaluateOnTransitions=false;
 
-	private double outOfScore;
+//	private double outOfScore;
 	
 
-	public double getOutOfScore() {
-		return outOfScore;
-	}
+//	public double getOutOfScore() {
+	//	return outOfScore;
+//	}
 
-	public HashMap<Integer, String> getCategoriesToRoot() {
+	/*public HashMap<Integer, String> getCategoriesToRoot() {
 		return categoriesToRoot;
 	}
-
+*/
 	public static HashMap<String, HashMap<String, HashMap<Integer, Double>>> getCurCoeffs() {
 
 		return curCoeffs;
@@ -93,16 +94,16 @@ public class GlobalVariables {
 		return categoriesToClusters;
 	}
 
-	public HashMap<String, Integer> getCatNameToInt() {
+/*	public HashMap<String, Integer> getCatNameToInt() {
 		return catNameToInt;
 	}
-
-	public HashMap<Integer, String> getCatIntToName() {
+*/
+/*	public HashMap<Integer, String> getCatIntToName() {
 		return catIntToName;
 	}
 
 	private HashMap<Integer, String> catIntToName;
-
+*/
 	public HashMap<String, String[]> getClusterCategories() {
 		return clusterToCategories;
 	}
@@ -124,6 +125,7 @@ public class GlobalVariables {
 		if (hierarchyStructure.length > 1)
 			hierarchicalFlag = true;
 
+		evaluateKalman = props.getProperty("evaluateKalman").equals("true")?true:false;
 		historyThr = Integer.parseInt(props.getProperty("historyThr").trim());
 		K = Integer.parseInt(props.getProperty("K").trim());
 		String[] tmpAr = props.getProperty("scoreThresholds").split(",");
@@ -134,7 +136,7 @@ public class GlobalVariables {
 		clusterToCategories = new HashMap<String, String[]>();
 		categoriesToClusters = new HashMap<String, String>();
 		for (String cluster : hierarchyStructure) {
-			String[] t = props.getProperty(cluster).split(",");
+			String[] t = props.getProperty(cluster.trim()).split(",");
 			clusterToCategories.put(cluster, t);
 			for (String catName : t){
 				System.out.println("Category "+catName+" to cluster:"+cluster);
@@ -142,7 +144,7 @@ public class GlobalVariables {
 			}
 
 		}
-		catNameToInt = new HashMap<String, Integer>();
+	/*	catNameToInt = new HashMap<String, Integer>();
 		catIntToName = new HashMap<Integer, String>();
 		String[] catMapping = props.getProperty("category-mapping").split(",");
 		for (String s : catMapping) {
@@ -162,7 +164,16 @@ public class GlobalVariables {
 			String[] t = s.split(":");
 			clusterToBasedOn.put(t[0], t[1]);
 		}
-
+*/
+		
+		clusterToBasedOn = new HashMap<String, String>();
+		
+		for(Entry<String, String[]> clusterToCategory: clusterToCategories.entrySet()){
+			String basedOn="_BasedOn";
+			for(String cat:clusterToCategory.getValue())
+				basedOn+= "_"+cat;
+			clusterToBasedOn.put(clusterToCategory.getKey(), basedOn);
+		}
 		String[] bptmp = props.getProperty("binomialPrior").split(",");
 		binomialPrior = new double[bptmp.length];
 		for (int i = 0; i < bptmp.length; i++)
@@ -186,8 +197,8 @@ public class GlobalVariables {
 			// System.out.println(i+" - "+q);
 			qualities[i] = q;
 		}
-		outOfScore = Double.parseDouble(props.getProperty("outOfScore"));
-		clustersToAbstractCategories = new HashMap<String, String>();
+	//	outOfScore = Double.parseDouble(props.getProperty("outOfScore"));
+	/*	clustersToAbstractCategories = new HashMap<String, String>();
 		for (String s : props.getProperty("clusters-to-abstract").split(",")) {
 			String[] t = s.split(":");
 			clustersToAbstractCategories.put(t[0], t[1]);
@@ -201,7 +212,7 @@ public class GlobalVariables {
 				categoryToAbstractCategory.put(e.getValue(),2);
 			}
 		}
-		
+		*/
 
 	}
 
@@ -217,17 +228,17 @@ public class GlobalVariables {
 	 * Input is "rr" or "rl".
 	 * @return
 	 */
-	public HashMap<String, String> getClustersToAbstractCategories() {
+	/*public HashMap<String, String> getClustersToAbstractCategories() {
 		return clustersToAbstractCategories;
 	}
 /**
  * 
  * @return the mapping of category to "1" (if rl) or 2 (if rr);
  */
-	public HashMap<Integer, Integer> getCategoryToAbstractCategory() {
+/*	public HashMap<Integer, Integer> getCategoryToAbstractCategory() {
 		return categoryToAbstractCategory;
 	}
-
+*/
 	public static GlobalVariables getGlobaleVars() {
 		return globaleVars;
 	}

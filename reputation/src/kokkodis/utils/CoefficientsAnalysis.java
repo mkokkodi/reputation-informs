@@ -63,7 +63,7 @@ public class CoefficientsAnalysis {
 			for (Entry<String, TreeMap<String, Double[]>> eIn : e.getValue()
 					.entrySet()) {
 
-				String mainCat = GlobalVariables.getInstance().getCatIntToName().get(Integer.parseInt(eIn.getKey()));
+				String mainCat = eIn.getKey();
 				String out2Str = outStr + " | " + mainCat;
 				
 				for (Entry<String, Double[]> e2In : eIn.getValue().entrySet()) {

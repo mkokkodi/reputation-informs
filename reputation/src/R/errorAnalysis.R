@@ -1,8 +1,8 @@
-results <- read.table(file="/Users/mkokkodi/git/reputation_informs/data/results/allPredictionsOnTransitions.csv",head=TRUE,sep=",")
+results <- read.table(file="/Users/mkokkodi/git/reputation_informs/data/results/allPredictions.csv",head=TRUE,sep=",")
 summary(results)
 library(ggplot2)
 library(grid)
-
+library(scales)     # Need the scales package
 printErrors<-function(){
   cat(sprintf("Model & Approachs &  History & Baseline & Basic Model \n"))
 for(model in unique(results$model)){
@@ -24,16 +24,16 @@ printErrors()
 
 
   
-kalmanErrors<-transform(results,error=abs(results$Nohierarchies - results$actual),method="Kalman Filtering")
+kalmanErrors<-transform(results,error=abs(results$Nohierarchies - results$actual),Method="LDS")
 kalmanErrors<-kalmanErrors[kalmanErrors$HistoryThreshold==15 & kalmanErrors$model=='Kalman',]
   
-binErrors<-transform(results,error=abs(results$Nohierarchies - results$actual),method="Binomial")
+binErrors<-transform(results,error=abs(results$Nohierarchies - results$actual),Method="Binomial")
 binErrors<-binErrors[binErrors$HistoryThreshold==15 & binErrors$model=='Binomial',]
 
-multErrors<-transform(results,error=abs(results$Nohierarchies - results$actual),method="Multinomial")
+multErrors<-transform(results,error=abs(results$Nohierarchies - results$actual),Method="Multinomial")
 multErrors<-multErrors[multErrors$HistoryThreshold==15 & multErrors$model=='Multinomial',]
 
-baselineErrors<-transform(results,error=abs(results$baseline - results$actual),method="Baseline")
+baselineErrors<-transform(results,error=abs(results$baseline - results$actual),Method="Baseline")
 baselineErrors<-baselineErrors[baselineErrors$HistoryThreshold==15 & baselineErrors$model=='Kalman',]
 
 
@@ -52,18 +52,22 @@ ggsave(file="/Users/mkokkodi/Dropbox/workspace/latex/reputation_informs/figures/
 
 
 allErrors <- rbind(baselineErrors,kalmanErrors,binErrors,multErrors)  
-ggplot(allErrors, aes(x=error,fill=method))  + geom_density(alpha=.4) +theme_bw(base_size = 16) +
+mysample <- allErrors[sample(1:nrow(allErrors), 50000,replace=FALSE),]
+ggplot(mysample, aes(x=error, linetype=Method, colour=Method),log="y")  + 
+  #geom_histogram(binwidth=.01, alpha=.5, position="identity")+ 
+  geom_density(alpha=0.3,adjust=10, size=1.8) +
+  theme_bw(base_size = 20) + #facet_wrap(~method,ncol=2) +
   xlab("Mean Absolute Error")+
-  ylab("Density")+labs(fill="")+ scale_x_continuous(limits = c(0, 0.8),breaks=c(0,0.25,0.5,0.75), 
-                                                    labels=c("0","0.25","0.5","0.75"))+
-  theme(legend.position = "right",axis.title.y = element_text(vjust=-0.1),axis.title.x = element_text(vjust=-0.3),plot.margin = unit(c(1, 1, 1, 1), "cm")) 
+  ylab("Log-Density")+labs(fill="")+ scale_x_continuous(limits = c(0, 1),breaks=c(0,1), 
+                                                    labels=c("0","1"))+ #scale_y_log10(breaks = c(0.01,0.1,1,10))+
+  theme(legend.position = "top",axis.title.y = element_text(vjust=-0.1),axis.title.x = element_text(vjust=-0.3),plot.margin = unit(c(1, 1, 1, 1), "cm")) 
 
-ggsave(file="/Users/mkokkodi/Dropbox/workspace/latex/reputation_informs/figures/allModelsErrorsOnTransitions.pdf",width=10,height=5,dpi=300)
+ggsave(file="/Users/mkokkodi/Dropbox/workspace/latex/reputation_informs/figures/allModelsErrorsOnTransitions.pdf",width=10,height=8,dpi=300)
 
 printErrorsByCategory()
 
 printErrorsByCategory<-function(){
-  cat(sprintf("Transition &    Baseline & Binomial &  Multinomial & Kalman Filtering  \n"))
+  cat(sprintf("Transition &    Baseline & Binomial &  Multinomial & LDS  \n"))
   sortedCats<-sort(unique(results$category))
   for(cat in sortedCats){
       bin<-results[results$category==cat & results$HistoryThreshold==15 & results$model=='Binomial',]
@@ -75,9 +79,13 @@ printErrorsByCategory<-function(){
       errorsMult<-abs(mult$Nohierarchies - mult$actual)
       errorsKalman<-abs(kalman$Nohierarchies -kalman$actual)
       errorsBaseline<-abs(kalman$baseline - kalman$actual)
-      cat(sprintf("%s   & %.3f  (%.4f) &  %.3f (%.4f)  &  %.3f  (%.4f) &  %.3f  (%.4f) \\\\ \n ",cat,mean(errorsBaseline), sqrt(var(errorsBaseline)),
-                  mean(errorsBin),sqrt(var(errorsBin)), 
-                  mean(errorsMult),sqrt(var(errorsMult)),
-                  mean(errorsKalman),sqrt(var(errorsKalman))))
+      #cat(sprintf("%s   & %.3f  (%.4f) &  %.3f (%.4f)  &  %.3f  (%.4f) &  %.3f  (%.4f) \\\\ \n ",cat,mean(errorsBaseline), sqrt(var(errorsBaseline)),
+       #           mean(errorsBin),sqrt(var(errorsBin)), 
+        #          mean(errorsMult),sqrt(var(errorsMult)),
+         #         mean(errorsKalman),sqrt(var(errorsKalman))))
+      
+      cat(sprintf("%s   & %.3f  &  %.3f &  %.3f &  %.3f   \\\\ \n ",cat,mean(errorsBaseline), mean(errorsBin),
+                  mean(errorsMult), mean(errorsKalman)))
+      
     }
 }

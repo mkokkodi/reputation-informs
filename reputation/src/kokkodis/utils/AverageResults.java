@@ -15,16 +15,19 @@ public class AverageResults {
 	/**
 	 * @param args
 	 */
+	private static boolean onTransitions = false;
 
 	private static String resultPath;
 	private static HashMap<String, TreeMap<Integer, HashMap<String, ArrayList<Double>>>> data;
 	private static PrintToFile resultsFile;
 
 	public static void main(String[] args) {
-averageAndPrint();
+		averageAndPrint();
+		
 	}
 
 	public static void averageAndPrint() {
+		GlobalVariables.getInstance();
 		initResultFile();
 
 		/**
@@ -42,10 +45,11 @@ averageAndPrint();
 		resultPath = PropertiesFactory.getInstance().getProps()
 				.getProperty("results");
 
+		
 		resultsFile = new PrintToFile();
-		resultsFile.openFile(resultPath + "cvAverageResults.csv");
+		resultsFile.openFile(resultPath + "cvAverageResults"+(GlobalVariables.hierarchicalFlag?"_hier":"")+(onTransitions?"_onTransitions":"")+".csv");
 		resultsFile
-				.writeToFile("model,approach,ScoreThreshold,HistoryThreshold,MAEmodel"
+				.writeToFile("model,approach,ScoreThreshold,HistoryThreshold,MAEModel"
 						+ ",MAEBaseline");
 
 		System.out
@@ -89,8 +93,7 @@ averageAndPrint();
 	private static HashMap<String, TreeMap<Integer, HashMap<String, ArrayList<Double>>>> getResultData() {
 
 		HashMap<String, TreeMap<Integer, HashMap<String, ArrayList<Double>>>> data = new HashMap<String, TreeMap<Integer, HashMap<String, ArrayList<Double>>>>();
-			String inFile = resultPath + "results_cv.csv";
-
+			String inFile = resultPath + "results_cv"+(onTransitions?"_onTransitions":"")+".csv";
 			try {
 				BufferedReader input = new BufferedReader(
 						new FileReader(inFile));
